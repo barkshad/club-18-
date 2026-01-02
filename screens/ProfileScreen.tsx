@@ -1,108 +1,121 @@
 
 import React, { useState } from 'react';
-import { Camera, Settings, Shield, LogOut, Edit3, Check } from 'lucide-react';
+import { Settings, Shield, LogOut, Edit3, Check, Grid, Bookmark, User as UserIcon } from 'lucide-react';
 
 const ProfileScreen: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
-  const [bio, setBio] = useState("Exploring the intersections of art, technology, and good conversation. Always looking for the next great story.");
+  const [bio, setBio] = useState("Architect of desire. Looking for deep conversations and midnight adventures. Minimalist, espresso enthusiast, traveler.");
+  const [activeTab, setActiveTab] = useState<'grid' | 'saved' | 'tagged'>('grid');
 
   return (
-    <div className="flex flex-col min-h-full">
-      {/* Profile Header */}
-      <div className="relative h-96 w-full">
-        <img 
-          src="https://picsum.photos/seed/myprofile/600/900" 
-          alt="My Profile" 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40" />
-        
-        <div className="absolute top-6 left-6 right-6 flex justify-between items-center">
-          <h1 className="text-lg font-bold tracking-tight">My Club Profile</h1>
-          <button className="p-2 bg-black/20 backdrop-blur-md rounded-full border border-white/10">
-            <Settings size={20} />
-          </button>
+    <div className="flex flex-col min-h-full bg-black">
+      {/* IG Style Profile Header */}
+      <header className="px-4 py-4 border-b border-zinc-900 flex justify-between items-center sticky top-0 bg-black/90 backdrop-blur-md z-10">
+        <h2 className="text-lg font-black tracking-tighter">alex_verified_18</h2>
+        <div className="flex gap-6">
+          <Settings size={22} className="text-white" strokeWidth={1.5} />
         </div>
+      </header>
 
-        <div className="absolute bottom-8 left-8 right-8">
-           <div className="flex items-end justify-between">
-              <div>
-                <h2 className="text-3xl font-bold">Alex, 29</h2>
-                <div className="flex items-center gap-2 mt-1">
-                  <div className="px-2 py-0.5 bg-white text-black text-[10px] font-bold rounded uppercase tracking-widest">Premium Member</div>
-                  <span className="text-zinc-400 text-xs">New York, US</span>
-                </div>
-              </div>
-              <button className="w-12 h-12 rounded-full bg-[#C41E3A] flex items-center justify-center shadow-lg shadow-[#C41E3A]/40">
-                <Camera size={20} />
-              </button>
-           </div>
-        </div>
-      </div>
-
-      {/* Stats Section */}
-      <div className="grid grid-cols-3 py-6 border-b border-zinc-900 bg-zinc-950">
-        <div className="text-center border-r border-zinc-900">
-           <span className="block text-lg font-bold">128</span>
-           <span className="text-[10px] text-zinc-500 uppercase font-medium">Profile Likes</span>
-        </div>
-        <div className="text-center border-r border-zinc-900">
-           <span className="block text-lg font-bold">42</span>
-           <span className="text-[10px] text-zinc-500 uppercase font-medium">Active Matches</span>
-        </div>
-        <div className="text-center">
-           <span className="block text-lg font-bold">Gold</span>
-           <span className="text-[10px] text-zinc-500 uppercase font-medium">Status</span>
-        </div>
-      </div>
-
-      {/* Bio Section */}
-      <div className="p-8">
-        <div className="flex justify-between items-center mb-4">
-           <h3 className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">About Me</h3>
-           <button 
-              onClick={() => setIsEditing(!isEditing)}
-              className="text-[#C41E3A] text-xs font-bold flex items-center gap-1"
-            >
-              {isEditing ? <><Check size={14} /> SAVE</> : <><Edit3 size={14} /> EDIT</>}
-           </button>
-        </div>
-
-        {isEditing ? (
-          <textarea 
-            value={bio}
-            onChange={(e) => setBio(e.target.value)}
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-sm text-zinc-300 focus:outline-none focus:border-[#C41E3A]/50"
-            rows={4}
-          />
-        ) : (
-          <p className="text-sm text-zinc-400 leading-relaxed italic">
-            "{bio}"
-          </p>
-        )}
-
-        <div className="mt-10 space-y-4">
-          <h3 className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">Account Excellence</h3>
-          
-          <div className="flex items-center gap-4 p-4 rounded-2xl bg-zinc-950 border border-zinc-900">
-            <div className="w-10 h-10 rounded-full bg-zinc-900 flex items-center justify-center text-[#C41E3A]">
-              <Shield size={20} />
-            </div>
-            <div className="flex-1">
-              <h4 className="text-sm font-bold">Verification Center</h4>
-              <p className="text-[10px] text-zinc-500">Increase trust with ID verification.</p>
-            </div>
-            <button className="text-xs font-bold text-zinc-400 underline uppercase tracking-tighter">Start</button>
+      {/* Profile Info Section */}
+      <div className="px-6 py-6 space-y-6">
+        <div className="flex items-center gap-10">
+          <div className="w-24 h-24 rounded-full p-[3px] bg-gradient-to-tr from-[#8B0000] to-zinc-700">
+             <div className="w-full h-full rounded-full border-2 border-black overflow-hidden relative">
+                <img 
+                  src="https://picsum.photos/seed/myprofile/400" 
+                  alt="My Profile" 
+                  className="w-full h-full object-cover"
+                />
+             </div>
           </div>
+          <div className="flex flex-1 justify-around text-center">
+             <div>
+               <span className="block text-base font-black">1,402</span>
+               <span className="text-[10px] text-zinc-500 uppercase tracking-tighter">Reach</span>
+             </div>
+             <div>
+               <span className="block text-base font-black">84</span>
+               <span className="text-[10px] text-zinc-500 uppercase tracking-tighter">Matches</span>
+             </div>
+             <div>
+               <span className="block text-base font-black">Elite</span>
+               <span className="text-[10px] text-zinc-500 uppercase tracking-tighter">Status</span>
+             </div>
+          </div>
+        </div>
 
-          <button className="w-full flex items-center justify-center gap-2 py-4 text-zinc-700 hover:text-red-500 transition-colors text-xs font-bold uppercase tracking-widest mt-6">
-            <LogOut size={16} /> Log Out from Club
+        <div>
+          <h3 className="text-sm font-black flex items-center gap-1">
+            Alex, 29
+            <Shield size={12} className="text-[#8B0000]" fill="currentColor" />
+          </h3>
+          <p className="text-[11px] text-zinc-500 mb-2 uppercase tracking-tight">Luxury Designer • NYC</p>
+          
+          {isEditing ? (
+            <textarea 
+              autoFocus
+              value={bio}
+              onChange={(e) => setBio(e.target.value)}
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-300 focus:outline-none focus:border-[#8B0000]/50"
+              rows={3}
+            />
+          ) : (
+            <p className="text-xs text-zinc-300 leading-relaxed font-light">
+              {bio}
+            </p>
+          )}
+          
+          <button 
+            onClick={() => setIsEditing(!isEditing)}
+            className="w-full mt-6 py-2 bg-zinc-900 text-white rounded-md text-[11px] font-black tracking-widest flex items-center justify-center gap-2 border border-zinc-800 uppercase"
+          >
+            {isEditing ? <><Check size={14} /> Finish Editing</> : <><Edit3 size={14} /> Edit Profile</>}
           </button>
         </div>
       </div>
-      
-      {/* Bottom Padding for Safe Area */}
-      <div className="h-20" />
+
+      {/* Profile Tabs */}
+      <div className="flex border-t border-zinc-900">
+        <button 
+          onClick={() => setActiveTab('grid')}
+          className={`flex-1 py-3 flex justify-center items-center border-t-2 transition-colors ${activeTab === 'grid' ? 'border-white text-white' : 'border-transparent text-zinc-600'}`}
+        >
+          <Grid size={20} />
+        </button>
+        <button 
+          onClick={() => setActiveTab('saved')}
+          className={`flex-1 py-3 flex justify-center items-center border-t-2 transition-colors ${activeTab === 'saved' ? 'border-white text-white' : 'border-transparent text-zinc-600'}`}
+        >
+          <Bookmark size={20} />
+        </button>
+        <button 
+          onClick={() => setActiveTab('tagged')}
+          className={`flex-1 py-3 flex justify-center items-center border-t-2 transition-colors ${activeTab === 'tagged' ? 'border-white text-white' : 'border-transparent text-zinc-600'}`}
+        >
+          <UserIcon size={20} />
+        </button>
+      </div>
+
+      {/* Profile Grid (Placeholder for user's own photos) */}
+      <div className="grid grid-cols-3 gap-[1px] bg-zinc-900 mb-20">
+        {[1,2,3,4,5,6,7,8,9].map(i => (
+          <div key={i} className="aspect-square bg-zinc-950">
+            <img 
+              src={`https://picsum.photos/seed/profile-post-${i}/300`} 
+              alt={`Post ${i}`} 
+              className="w-full h-full object-cover opacity-80"
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Logout / Account Settings Footer */}
+      <div className="px-8 pb-10 text-center">
+          <button className="flex items-center justify-center gap-2 py-4 text-zinc-800 hover:text-[#8B0000] transition-colors text-[10px] font-black uppercase tracking-[0.3em]">
+            <LogOut size={14} /> Exit Private Club
+          </button>
+      </div>
     </div>
   );
 };
