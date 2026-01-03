@@ -1,5 +1,6 @@
+
 import React from 'react';
-import { Home, Heart, MessageCircle, User } from 'lucide-react';
+import { Home, Search, PlusSquare, MessageCircle, User } from 'lucide-react';
 import { AppScreen } from '../types';
 
 interface NavigationBarProps {
@@ -26,7 +27,7 @@ const NavigationBar: React.FC<NavigationBarProps> = ({ activeScreen, onNavigate,
       {activeScreen === screen && (
         <span className="absolute -bottom-1 w-1 h-1 bg-white rounded-full"></span>
       )}
-      {screen === 'chat-list' && unreadCount > 0 && (
+      {screen === 'inbox' && unreadCount > 0 && (
         <span className="absolute top-1 right-0 bg-[#8B0000] text-white text-[9px] font-bold px-1 rounded-full min-w-[14px] flex justify-center items-center h-3.5 border border-black">
           {unreadCount}
         </span>
@@ -36,9 +37,10 @@ const NavigationBar: React.FC<NavigationBarProps> = ({ activeScreen, onNavigate,
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto glass-panel border-t border-zinc-900/50 px-8 flex justify-between items-center z-50 safe-bottom">
-      <NavItem screen="home" icon={Home} />
-      <NavItem screen="matches" icon={Heart} />
-      <NavItem screen="chat-list" icon={MessageCircle} />
+      <NavItem screen="feed" icon={Home} />
+      <NavItem screen="explore" icon={Search} />
+      <NavItem screen="create" icon={PlusSquare} />
+      <NavItem screen="inbox" icon={MessageCircle} />
       <NavItem screen="profile" icon={User} />
     </nav>
   );

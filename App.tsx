@@ -5,8 +5,9 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { AppScreen } from './types';
 import AgeGate from './screens/AgeGate';
-import HomeScreen from './screens/HomeScreen';
-import MatchesScreen from './screens/MatchesScreen';
+import FeedScreen from './screens/FeedScreen';
+import ExploreScreen from './screens/ExploreScreen';
+import CreatePostScreen from './screens/CreatePostScreen';
 import ChatListScreen from './screens/ChatListScreen';
 import ChatDetailScreen from './screens/ChatDetailScreen';
 import ProfileScreen from './screens/ProfileScreen';
@@ -18,7 +19,6 @@ const App: React.FC = () => {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Helper to generate a consistent chat ID between two users
   const getChatId = (uid1: string, uid2: string) => {
     return [uid1, uid2].sort().join('--');
   };
@@ -27,28 +27,12 @@ const App: React.FC = () => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser(user);
-        
-        const tryFetchProfile = async (uid: string, retries = 2): Promise<void> => {
-          try {
-            const userDoc = await getDoc(doc(db, "users", uid));
-            if (userDoc.exists()) {
-              // If user exists, but we are in onboarding, we might want to stay in profile
-              // But generally, go to home after auth
-              if (currentScreen === 'age-gate') setCurrentScreen('home');
-            } else {
-              setCurrentScreen('profile');
-            }
-          } catch (err: any) {
-            console.warn(`Profile check: ${err.message}`);
-            if (retries > 0 && (err.code === 'permission-denied' || err.code === 'unauthenticated')) {
-              await new Promise(resolve => setTimeout(resolve, 800));
-              return tryFetchProfile(uid, retries - 1);
-            }
-            setCurrentScreen('profile');
-          }
-        };
-
-        await tryFetchProfile(user.uid);
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          if (currentScreen === 'age-gate') setCurrentScreen('feed');
+        } else {
+          setCurrentScreen('profile');
+        }
       } else {
         setCurrentUser(null);
         setCurrentScreen('age-gate');
@@ -77,18 +61,20 @@ const App: React.FC = () => {
     switch (currentScreen) {
       case 'age-gate':
         return <AgeGate onVerify={() => {}} />;
-      case 'home':
-        return <HomeScreen onMessage={navigateToChat} onNavigateToMatches={() => setCurrentScreen('matches')} />;
-      case 'matches':
-        return <MatchesScreen matchedIds={[]} onChat={navigateToChat} />;
-      case 'chat-list':
+      case 'feed':
+        return <FeedScreen onMessage={navigateToChat} />;
+      case 'explore':
+        return <ExploreScreen onSelectPost={(uid) => navigateToChat(uid)} />;
+      case 'create':
+        return <CreatePostScreen onSuccess={() => setCurrentScreen('feed')} />;
+      case 'inbox':
         return <ChatListScreen onChatSelect={(id) => { setSelectedChatId(id); setCurrentScreen('chat-detail'); }} />;
       case 'chat-detail':
-        return <ChatDetailScreen chatId={selectedChatId || ''} onBack={() => setCurrentScreen('chat-list')} />;
+        return <ChatDetailScreen chatId={selectedChatId || ''} onBack={() => setCurrentScreen('inbox')} />;
       case 'profile':
         return <ProfileScreen />;
       default:
-        return <HomeScreen onMessage={navigateToChat} onNavigateToMatches={() => setCurrentScreen('matches')} />;
+        return <FeedScreen onMessage={navigateToChat} />;
     }
   };
 

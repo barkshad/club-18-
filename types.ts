@@ -14,9 +14,11 @@ export interface Post {
   id: string;
   uid: string;
   url: string;
-  type: 'image' | 'video';
+  type: 'image' | 'video' | 'audio';
   timestamp: number;
   caption?: string;
+  userName?: string;
+  userImage?: string;
 }
 
 export interface Message {
@@ -30,10 +32,9 @@ export interface Message {
 
 export interface ChatThread {
   id: string;
-  // Fix: Changed partnerId: string to partner: UserProfile to match usage in data.ts and ChatListScreen.tsx
   partner: UserProfile;
   lastMessage: Message;
   unreadCount: number;
 }
 
-export type AppScreen = 'age-gate' | 'home' | 'matches' | 'chat-list' | 'chat-detail' | 'profile';
+export type AppScreen = 'age-gate' | 'feed' | 'explore' | 'create' | 'inbox' | 'chat-detail' | 'profile';
