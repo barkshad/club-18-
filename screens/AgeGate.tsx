@@ -1,16 +1,15 @@
+
 import React, { useState } from 'react';
-import { auth } from '../firebase';
+import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { ShieldCheck, ChevronRight } from 'lucide-react';
+import { doc, setDoc } from 'firebase/firestore';
+import { ShieldCheck, ChevronRight, User as UserIcon } from 'lucide-react';
 
-interface AgeGateProps {
-  onVerify: () => void;
-}
-
-const AgeGate: React.FC<AgeGateProps> = () => {
+const AgeGate: React.FC<{onVerify: () => void}> = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [ageChecked, setAgeChecked] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,7 +26,12 @@ const AgeGate: React.FC<AgeGateProps> = () => {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCred = await createUserWithEmailAndPassword(auth, email, password);
+        // Create initial user doc with username
+        await setDoc(doc(db, "users", userCred.user.uid), {
+          username: username.toLowerCase().replace(/\s/g, ''),
+          createdAt: Date.now()
+        }, { merge: true });
       }
     } catch (err: any) {
       const msg = err.message.replace('Firebase: ', '');
@@ -39,7 +43,6 @@ const AgeGate: React.FC<AgeGateProps> = () => {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-8 bg-black relative overflow-hidden fade-in">
-      {/* Background Ambience */}
       <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#8B0000]/10 blur-[120px] rounded-full"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#8B0000]/5 blur-[120px] rounded-full"></div>
 
@@ -58,6 +61,15 @@ const AgeGate: React.FC<AgeGateProps> = () => {
 
       <div className="space-y-4 w-full max-w-[280px] z-10">
         <div className="space-y-2">
+          {!isLogin && (
+            <input 
+              type="text" 
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 text-sm focus:outline-none focus:border-[#8B0000]/50 transition-all placeholder:text-zinc-600"
+            />
+          )}
           <input 
             type="email" 
             placeholder="Email"

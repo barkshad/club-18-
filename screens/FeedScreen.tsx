@@ -1,8 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
-import { db, auth } from '../firebase';
+import { db } from '../firebase';
 import { collection, query, orderBy, onSnapshot, limit } from 'firebase/firestore';
-import { MessageCircle, MoreVertical, Heart, Share2 } from 'lucide-react';
+import { MessageCircle, MoreVertical, Heart, Share2, ShieldCheck } from 'lucide-react';
 import { Post } from '../types';
 
 const FeedScreen: React.FC<{onMessage: (uid: string) => void}> = ({ onMessage }) => {
@@ -20,71 +20,87 @@ const FeedScreen: React.FC<{onMessage: (uid: string) => void}> = ({ onMessage })
 
   if (loading) return (
     <div className="h-full flex items-center justify-center bg-black">
-      <div className="w-8 h-8 border-2 border-[#8B0000] border-t-transparent rounded-full animate-spin"></div>
+      <div className="w-10 h-10 border-2 border-[#8B0000] border-t-transparent rounded-full animate-spin"></div>
     </div>
   );
 
   return (
     <div className="flex flex-col bg-black min-h-screen fade-in">
-      <header className="sticky top-0 z-40 glass-panel px-6 py-4 flex justify-between items-center border-b border-white/5">
-        <h1 className="text-xl font-black tracking-tighter italic">
+      <header className="sticky top-0 z-40 glass-panel px-6 py-5 flex justify-between items-center border-b border-white/5">
+        <h1 className="text-2xl font-black tracking-tighter italic">
           CLUB 18<span className="text-[#8B0000] not-italic text-glow">+</span>
         </h1>
-        <div className="w-10 h-10 bg-zinc-900/50 rounded-full flex items-center justify-center border border-white/5">
-            <Heart size={16} className="text-[#8B0000]" fill="currentColor" />
+        <div className="flex items-center gap-4">
+            <ShieldCheck size={20} className="text-zinc-600" />
+            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
         </div>
       </header>
 
-      <div className="flex flex-col gap-6 py-4">
+      <div className="flex flex-col py-2">
         {posts.length === 0 ? (
-          <div className="text-center py-20 text-zinc-600 uppercase tracking-widest text-[10px] font-bold">
-            No active moments found
+          <div className="flex flex-col items-center justify-center py-40 opacity-20">
+             <div className="w-20 h-20 rounded-full border border-dashed border-white mb-6"></div>
+             <p className="text-[10px] font-black uppercase tracking-[0.5em]">Establishing Directory...</p>
           </div>
         ) : (
           posts.map((post) => (
-            <div key={post.id} className="flex flex-col border-b border-zinc-900/50 pb-6">
-              <div className="px-4 py-3 flex items-center justify-between">
+            <div key={post.id} className="flex flex-col mb-10 group">
+              {/* Post Header */}
+              <div className="px-5 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-zinc-800 overflow-hidden border border-white/5">
-                    {post.userImage && <img src={post.userImage} className="w-full h-full object-cover" />}
+                  <div className="w-10 h-10 rounded-full bg-zinc-900 overflow-hidden border border-white/10 ring-2 ring-[#8B0000]/20">
+                    {post.userImage ? (
+                      <img src={post.userImage} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-[#8B0000]/10">
+                        <span className="text-[10px] font-black text-[#8B0000]">{post.userName?.charAt(0) || 'M'}</span>
+                      </div>
+                    )}
                   </div>
-                  <span className="text-xs font-black uppercase tracking-widest italic">{post.userName || 'Exclusive Member'}</span>
+                  <div className="flex flex-col">
+                    <span className="text-[11px] font-black uppercase tracking-widest italic text-white/90">
+                      @{post.userName?.toLowerCase().replace(/\s/g, '') || 'exclusive_member'}
+                    </span>
+                    <span className="text-[8px] text-zinc-600 font-bold tracking-widest uppercase">Verified Adult</span>
+                  </div>
                 </div>
-                <MoreVertical size={16} className="text-zinc-600" />
+                <MoreVertical size={18} className="text-zinc-700" />
               </div>
               
-              <div className="relative aspect-square bg-zinc-950">
+              {/* Media Content */}
+              <div className="relative aspect-[4/5] bg-zinc-950 overflow-hidden" onDoubleClick={() => {}}>
                 {post.type === 'video' ? (
-                  <video src={post.url} className="w-full h-full object-cover" controls loop muted autoPlay />
+                  <video src={post.url} className="w-full h-full object-cover" loop muted autoPlay playsInline />
                 ) : (
-                  <img src={post.url} className="w-full h-full object-cover" />
+                  <img src={post.url} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
                 )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent"></div>
               </div>
 
-              <div className="px-4 pt-4 flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                  <Heart size={22} className="text-white hover:text-[#8B0000] transition-colors" />
+              {/* Interaction Bar */}
+              <div className="px-6 pt-5 flex items-center justify-between">
+                <div className="flex items-center gap-8">
+                  <Heart size={26} className="text-white active:scale-125 transition-transform" />
                   <MessageCircle 
-                    size={22} 
-                    className="text-white hover:text-[#8B0000] transition-colors cursor-pointer" 
+                    size={26} 
+                    className="text-white active:scale-110 transition-transform cursor-pointer" 
                     onClick={() => onMessage(post.uid)} 
                   />
-                  <Share2 size={22} className="text-white" />
+                  <Share2 size={26} className="text-white active:scale-110 transition-transform" />
                 </div>
+                <div className="h-1 w-1 rounded-full bg-zinc-800"></div>
               </div>
 
-              {post.caption && (
-                <div className="px-4 pt-3">
-                  <p className="text-sm text-zinc-300">
-                    <span className="font-black italic mr-2">{post.userName || 'Member'}</span>
+              {/* Caption & Timestamp */}
+              <div className="px-6 pt-4 space-y-2">
+                {post.caption && (
+                  <p className="text-[13px] text-zinc-300 leading-relaxed font-medium">
+                    <span className="font-black italic mr-2 text-white">@{post.userName?.toLowerCase() || 'member'}</span>
                     {post.caption}
                   </p>
-                </div>
-              )}
-              
-              <div className="px-4 pt-1">
-                <span className="text-[9px] text-zinc-600 uppercase font-black tracking-widest">
-                  {new Date(post.timestamp).toLocaleDateString()}
+                )}
+                <span className="text-[9px] text-zinc-700 uppercase font-black tracking-[0.2em] block pt-1">
+                  Posted {new Date(post.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
               </div>
             </div>
