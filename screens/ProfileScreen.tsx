@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { doc, setDoc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc } from 'firebase/firestore';
@@ -37,6 +36,7 @@ const ProfileScreen: React.FC = () => {
           setAge(data.age?.toString() || '');
           setBio(data.bio || '');
           setLocation(data.location || '');
+          setIsEditing(false);
         } else {
           setIsEditing(true); // First time setup
         }
@@ -98,8 +98,11 @@ const ProfileScreen: React.FC = () => {
       
       setProfile({ id: auth.currentUser.uid, ...updatedProfile } as UserProfile);
       setSaveStatus('success');
-      setIsEditing(false);
-      setTimeout(() => setSaveStatus('idle'), 3000);
+      setFile(null);
+      setTimeout(() => {
+        setSaveStatus('idle');
+        setIsEditing(false); // Take user to View mode after saving
+      }, 1000);
     } catch (err: any) {
       console.error(err);
       setSaveStatus('error');
@@ -160,7 +163,7 @@ const ProfileScreen: React.FC = () => {
                   placeholder="Your name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-900 rounded-xl p-4 text-sm focus:outline-none focus:border-[#8B0000] transition-colors"
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-xl p-4 text-sm focus:outline-none focus:border-[#8B0000] transition-colors text-white"
               />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -171,7 +174,7 @@ const ProfileScreen: React.FC = () => {
                       type="number"
                       value={age}
                       onChange={(e) => setAge(e.target.value)}
-                      className="w-full bg-zinc-950 border border-zinc-900 rounded-xl p-4 text-sm focus:outline-none focus:border-[#8B0000] transition-colors"
+                      className="w-full bg-zinc-950 border border-zinc-900 rounded-xl p-4 text-sm focus:outline-none focus:border-[#8B0000] transition-colors text-white"
                   />
               </div>
               <div className="space-y-1">
@@ -180,7 +183,7 @@ const ProfileScreen: React.FC = () => {
                       placeholder="City"
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
-                      className="w-full bg-zinc-950 border border-zinc-900 rounded-xl p-4 text-sm focus:outline-none focus:border-[#8B0000] transition-colors"
+                      className="w-full bg-zinc-950 border border-zinc-900 rounded-xl p-4 text-sm focus:outline-none focus:border-[#8B0000] transition-colors text-white"
                   />
               </div>
           </div>
@@ -190,21 +193,23 @@ const ProfileScreen: React.FC = () => {
                   placeholder="Tell your story..."
                   value={bio}
                   onChange={(e) => setBio(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-900 rounded-xl p-4 text-sm h-28 focus:outline-none focus:border-[#8B0000] transition-colors resize-none"
+                  className="w-full bg-zinc-950 border border-zinc-900 rounded-xl p-4 text-sm h-28 focus:outline-none focus:border-[#8B0000] transition-colors resize-none text-white"
               />
           </div>
 
           <div className="flex gap-4 pt-2">
-              <button 
-                  onClick={() => setIsEditing(false)}
-                  className="flex-1 py-4 rounded-full font-black text-[10px] uppercase tracking-widest border border-zinc-800 text-zinc-500"
-              >
-                  Cancel
-              </button>
+              {profile && (
+                <button 
+                    onClick={() => setIsEditing(false)}
+                    className="flex-1 py-4 rounded-full font-black text-[10px] uppercase tracking-widest border border-zinc-800 text-zinc-500"
+                >
+                    Cancel
+                </button>
+              )}
               <button 
                   onClick={handleSave}
                   disabled={loading}
-                  className="flex-[2] py-4 bg-[#8B0000] text-white rounded-full font-black text-[10px] uppercase tracking-widest active:scale-95 premium-glow disabled:opacity-50"
+                  className={`${profile ? 'flex-[2]' : 'w-full'} py-4 bg-[#8B0000] text-white rounded-full font-black text-[10px] uppercase tracking-widest active:scale-95 premium-glow disabled:opacity-50`}
               >
                   {loading ? 'Processing...' : 'Save Member Data'}
               </button>
@@ -241,8 +246,8 @@ const ProfileScreen: React.FC = () => {
             <LogOut size={18} className="text-zinc-400" />
         </button>
 
-        <div className="absolute bottom-6 left-8 right-8">
-            <h1 className="text-4xl font-black italic tracking-tighter mb-1">
+        <div className="absolute bottom-6 left-8 right-8 text-left">
+            <h1 className="text-4xl font-black italic tracking-tighter mb-1 text-white">
                 {profile?.name || 'New Member'}, {profile?.age || '--'}
             </h1>
             <div className="flex items-center gap-1.5 text-zinc-400">
@@ -252,7 +257,7 @@ const ProfileScreen: React.FC = () => {
         </div>
       </div>
 
-      <div className="px-8 py-6 space-y-8">
+      <div className="px-8 py-6 space-y-8 text-left">
         {/* Bio */}
         <div className="space-y-2">
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-600">Confidential Bio</h3>

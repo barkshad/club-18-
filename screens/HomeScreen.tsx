@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState } from 'react';
 import { db, auth } from '../firebase';
 import { collection, query, addDoc, onSnapshot, limit } from 'firebase/firestore';
-import { MessageSquare, X, Star, MapPin, ShieldAlert } from 'lucide-react';
+import { MessageCircle, X, Star, MapPin, ShieldAlert } from 'lucide-react';
 import { UserProfile } from '../types';
 
 const HomeScreen: React.FC<{onMessage: (uid: string) => void, onNavigateToMatches: any}> = ({ onMessage }) => {
@@ -52,7 +51,7 @@ const HomeScreen: React.FC<{onMessage: (uid: string) => void, onNavigateToMatche
     
     if (type === 'message') {
       try {
-        // Record the interaction
+        // Record the interaction as a like/interest
         await addDoc(collection(db, "likes"), { 
           from: user.uid, 
           to: targetUid, 
@@ -63,6 +62,7 @@ const HomeScreen: React.FC<{onMessage: (uid: string) => void, onNavigateToMatche
         onMessage(targetUid);
       } catch (err: any) {
         console.error("Action error:", err);
+        // Fallback: still navigate to chat even if logging fails
         onMessage(targetUid);
       }
     } else {
@@ -153,9 +153,9 @@ const HomeScreen: React.FC<{onMessage: (uid: string) => void, onNavigateToMatche
                              </button>
                              <button 
                                 onClick={() => handleAction(activeUser.id, 'message')}
-                                className="flex-1 py-4 bg-[#8B0000] rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all premium-glow shadow-[0_0_20px_rgba(139,0,0,0.5)]"
+                                className="flex-1 py-4 bg-[#8B0000] rounded-full text-white font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all premium-glow shadow-[0_0_20px_rgba(139,0,0,0.5)]"
                              >
-                                <MessageSquare size={16} fill="currentColor" /> Send Message
+                                <MessageCircle size={18} fill="currentColor" /> Message
                              </button>
                         </div>
                     </div>
