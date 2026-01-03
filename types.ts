@@ -5,9 +5,18 @@ export interface UserProfile {
   age: number;
   bio: string;
   image: string;
-  interests: string[];
+  interests?: string[];
   location: string;
   isMatch?: boolean;
+}
+
+export interface Post {
+  id: string;
+  uid: string;
+  url: string;
+  type: 'image' | 'video';
+  timestamp: number;
+  caption?: string;
 }
 
 export interface Message {
@@ -16,10 +25,12 @@ export interface Message {
   text: string;
   timestamp: number;
   isRead: boolean;
+  matchId: string;
 }
 
 export interface ChatThread {
   id: string;
+  // Fix: Changed partnerId: string to partner: UserProfile to match usage in data.ts and ChatListScreen.tsx
   partner: UserProfile;
   lastMessage: Message;
   unreadCount: number;

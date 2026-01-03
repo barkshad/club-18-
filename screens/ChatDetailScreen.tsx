@@ -1,21 +1,33 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { db, auth } from '../firebase';
-import { collection, addDoc, query, orderBy, onSnapshot, limit, where } from 'firebase/firestore';
-import { ArrowLeft, Send, MoreHorizontal, Shield } from 'lucide-react';
+import { collection, addDoc, query, orderBy, onSnapshot, limit, where, doc, getDoc } from 'firebase/firestore';
+import { ArrowLeft, Send, MoreHorizontal, Shield, User as UserIcon } from 'lucide-react';
+import { UserProfile } from '../types';
 
-const ChatDetailScreen: React.FC<{matchId: string, onBack: any}> = ({ matchId, onBack }) => {
+const ChatDetailScreen: React.FC<{chatId: string, onBack: any}> = ({ chatId, onBack }) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
+  const [partner, setPartner] = useState<UserProfile | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!auth.currentUser || !matchId) return;
+    if (!auth.currentUser || !chatId) return;
 
-    // Fixed: Scoping query to current matchId to comply with security rules
+    // Determine partner UID from chatId (uid1--uid2)
+    const uids = chatId.split('--');
+    const partnerUid = uids.find(id => id !== auth.currentUser?.uid);
+
+    if (partnerUid) {
+      getDoc(doc(db, "users", partnerUid)).then(snap => {
+        if (snap.exists()) setPartner({ id: snap.id, ...snap.data() } as UserProfile);
+      });
+    }
+
     const q = query(
       collection(db, "messages"), 
-      where("matchId", "==", matchId),
+      where("matchId", "==", chatId),
       orderBy("timestamp", "asc"), 
       limit(100)
     );
@@ -32,13 +44,13 @@ const ChatDetailScreen: React.FC<{matchId: string, onBack: any}> = ({ matchId, o
         }, 100);
       },
       (error) => {
-        console.error("Chat permission or network error:", error);
+        console.error("Chat error:", error);
         setLoading(false);
       }
     );
 
     return () => unsubscribe();
-  }, [matchId]);
+  }, [chatId]);
 
   const handleSend = async () => {
     if (!inputText.trim() || !auth.currentUser) return;
@@ -49,7 +61,7 @@ const ChatDetailScreen: React.FC<{matchId: string, onBack: any}> = ({ matchId, o
         text: text,
         senderId: auth.currentUser.uid,
         timestamp: Date.now(),
-        matchId: matchId
+        matchId: chatId
       });
     } catch (err) {
       console.error("Failed to send:", err);
@@ -63,12 +75,17 @@ const ChatDetailScreen: React.FC<{matchId: string, onBack: any}> = ({ matchId, o
             <button onClick={onBack} className="text-zinc-400 hover:text-white transition-colors p-1">
             <ArrowLeft size={20} />
             </button>
-            <div className="flex flex-col">
-                <div className="flex items-center gap-1.5">
-                    <h2 className="text-[11px] font-black uppercase tracking-widest italic">Secret Member</h2>
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+            <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-zinc-900 overflow-hidden border border-white/10">
+                    {partner?.image ? <img src={partner.image} className="w-full h-full object-cover" /> : <UserIcon className="m-auto mt-2 text-zinc-700" />}
                 </div>
-                <p className="text-[9px] text-zinc-600 font-bold tracking-widest uppercase">End-to-End Encrypted</p>
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-1.5">
+                        <h2 className="text-[12px] font-black uppercase tracking-widest italic">{partner?.name || 'Member'}</h2>
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                    </div>
+                    <p className="text-[9px] text-zinc-600 font-bold tracking-widest uppercase">Discrete Mode</p>
+                </div>
             </div>
         </div>
         <button className="text-zinc-500"><MoreHorizontal size={20} /></button>
@@ -103,13 +120,6 @@ const ChatDetailScreen: React.FC<{matchId: string, onBack: any}> = ({ matchId, o
             </div>
           );
         })}
-        
-        {!loading && messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
-            <p className="text-[10px] uppercase font-bold tracking-[0.4em] text-zinc-500">Silence is luxury.</p>
-            <p className="text-[9px] uppercase font-bold tracking-[0.2em] text-zinc-700 mt-2">Start the conversation when ready.</p>
-          </div>
-        )}
       </div>
 
       <div className="p-4 pb-8 glass-panel border-t border-white/5 relative">
@@ -123,7 +133,7 @@ const ChatDetailScreen: React.FC<{matchId: string, onBack: any}> = ({ matchId, o
             />
             <button 
                 onClick={handleSend} 
-                className="w-10 h-10 bg-white text-black rounded-xl flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30 disabled:grayscale"
+                className="w-10 h-10 bg-white text-black rounded-xl flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30"
                 disabled={!inputText.trim()}
             >
                 <Send size={18} fill="currentColor" />

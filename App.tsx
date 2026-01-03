@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -17,6 +18,11 @@ const App: React.FC = () => {
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Helper to generate a consistent chat ID between two users
+  const getChatId = (uid1: string, uid2: string) => {
+    return [uid1, uid2].sort().join('--');
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
@@ -26,13 +32,14 @@ const App: React.FC = () => {
           try {
             const userDoc = await getDoc(doc(db, "users", uid));
             if (userDoc.exists()) {
-              setCurrentScreen('home');
+              // If user exists, but we are in onboarding, we might want to stay in profile
+              // But generally, go to home after auth
+              if (currentScreen === 'age-gate') setCurrentScreen('home');
             } else {
               setCurrentScreen('profile');
             }
           } catch (err: any) {
             console.warn(`Profile check: ${err.message}`);
-            // If it's a permission error, it might be the auth token haven't reached Firestore yet
             if (retries > 0 && (err.code === 'permission-denied' || err.code === 'unauthenticated')) {
               await new Promise(resolve => setTimeout(resolve, 800));
               return tryFetchProfile(uid, retries - 1);
@@ -49,9 +56,11 @@ const App: React.FC = () => {
       setLoading(false);
     });
     return () => unsubscribe();
-  }, []);
+  }, [currentScreen]);
 
-  const navigateToChat = (chatId: string) => {
+  const navigateToChat = (partnerUid: string) => {
+    if (!auth.currentUser) return;
+    const chatId = getChatId(auth.currentUser.uid, partnerUid);
     setSelectedChatId(chatId);
     setCurrentScreen('chat-detail');
   };
@@ -69,17 +78,17 @@ const App: React.FC = () => {
       case 'age-gate':
         return <AgeGate onVerify={() => {}} />;
       case 'home':
-        return <HomeScreen onLike={() => {}} onNavigateToMatches={() => setCurrentScreen('matches')} />;
+        return <HomeScreen onMessage={navigateToChat} onNavigateToMatches={() => setCurrentScreen('matches')} />;
       case 'matches':
         return <MatchesScreen matchedIds={[]} onChat={navigateToChat} />;
       case 'chat-list':
-        return <ChatListScreen onChatSelect={navigateToChat} />;
+        return <ChatListScreen onChatSelect={(id) => { setSelectedChatId(id); setCurrentScreen('chat-detail'); }} />;
       case 'chat-detail':
-        return <ChatDetailScreen matchId={selectedChatId || ''} onBack={() => setCurrentScreen('chat-list')} />;
+        return <ChatDetailScreen chatId={selectedChatId || ''} onBack={() => setCurrentScreen('chat-list')} />;
       case 'profile':
         return <ProfileScreen />;
       default:
-        return <HomeScreen onLike={() => {}} onNavigateToMatches={() => setCurrentScreen('matches')} />;
+        return <HomeScreen onMessage={navigateToChat} onNavigateToMatches={() => setCurrentScreen('matches')} />;
     }
   };
 

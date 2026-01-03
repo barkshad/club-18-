@@ -1,36 +1,33 @@
+
 import React, { useEffect, useState } from 'react';
 import { db, auth } from '../firebase';
-import { collection, query, where, addDoc, onSnapshot, limit } from 'firebase/firestore';
-import { Heart, X, Star, MapPin, Info, ShieldAlert } from 'lucide-react';
+import { collection, query, addDoc, onSnapshot, limit } from 'firebase/firestore';
+import { MessageSquare, X, Star, MapPin, ShieldAlert } from 'lucide-react';
 import { UserProfile } from '../types';
 
-const HomeScreen: React.FC<{onLike: any, onNavigateToMatches: any}> = ({ onNavigateToMatches }) => {
+const HomeScreen: React.FC<{onMessage: (uid: string) => void, onNavigateToMatches: any}> = ({ onMessage }) => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    // Safety check: ensure user is logged in
     const user = auth.currentUser;
     if (!user) {
       setLoading(false);
       return;
     }
 
-    // Attempt to fetch other users. 
-    // Sometimes "__name__ != uid" queries are restricted by rules if they lead to collection-wide scans.
-    // We fetch a limited set for discovery.
     const q = query(
       collection(db, "users"),
-      limit(20)
+      limit(30)
     );
 
     const unsubscribe = onSnapshot(q, 
       (snapshot) => {
         const usersData = snapshot.docs
           .map(doc => ({ id: doc.id, ...doc.data() } as UserProfile))
-          .filter(u => u.id !== user.uid); // Filter out self locally to be safe
+          .filter(u => u.id !== user.uid && u.name); // Filter out self and uninitialized profiles
         setUsers(usersData);
         setLoading(false);
         setError(null);
@@ -49,29 +46,31 @@ const HomeScreen: React.FC<{onLike: any, onNavigateToMatches: any}> = ({ onNavig
     return () => unsubscribe();
   }, []);
 
-  const handleAction = async (targetUid: string, type: 'like' | 'pass') => {
+  const handleAction = async (targetUid: string, type: 'message' | 'pass') => {
     const user = auth.currentUser;
     if (!user) return;
     
-    if (type === 'like') {
+    if (type === 'message') {
       try {
+        // Record the interaction
         await addDoc(collection(db, "likes"), { 
           from: user.uid, 
           to: targetUid, 
-          timestamp: Date.now() 
+          timestamp: Date.now(),
+          directMessage: true
         });
+        // Immediately navigate to chat
+        onMessage(targetUid);
       } catch (err: any) {
         console.error("Action error:", err);
-        if (err.code === 'permission-denied') {
-          alert("Interaction restricted. Membership check failed.");
-        }
+        onMessage(targetUid);
       }
-    }
-    
-    if (currentIndex < users.length - 1) {
-      setCurrentIndex(prev => prev + 1);
     } else {
-      setUsers([]);
+      if (currentIndex < users.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+      } else {
+        setUsers([]); // End of deck
+      }
     }
   };
 
@@ -153,10 +152,10 @@ const HomeScreen: React.FC<{onLike: any, onNavigateToMatches: any}> = ({ onNavig
                                 <X size={24} />
                              </button>
                              <button 
-                                onClick={() => handleAction(activeUser.id, 'like')}
-                                className="flex-1 py-4 bg-[#8B0000] rounded-full text-white font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all premium-glow"
+                                onClick={() => handleAction(activeUser.id, 'message')}
+                                className="flex-1 py-4 bg-[#8B0000] rounded-full text-white font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all premium-glow shadow-[0_0_20px_rgba(139,0,0,0.5)]"
                              >
-                                <Heart size={18} fill="currentColor" /> Match
+                                <MessageSquare size={16} fill="currentColor" /> Send Message
                              </button>
                         </div>
                     </div>

@@ -58,7 +58,9 @@ export const MOCK_CHATS: ChatThread[] = [
       senderId: '1',
       text: 'I loved the restaurant suggestion!',
       timestamp: Date.now() - 3600000,
-      isRead: false
+      isRead: false,
+      // Fix: Added missing matchId property required by the Message interface
+      matchId: 'c1'
     },
     unreadCount: 1
   },
@@ -70,7 +72,9 @@ export const MOCK_CHATS: ChatThread[] = [
       senderId: 'me',
       text: 'Are you free this weekend?',
       timestamp: Date.now() - 86400000,
-      isRead: true
+      isRead: true,
+      // Fix: Added missing matchId property required by the Message interface
+      matchId: 'c2'
     },
     unreadCount: 0
   }
