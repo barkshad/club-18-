@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db, auth } from '../firebase';
-import { collection, addDoc, query, orderBy, onSnapshot, limit } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, onSnapshot, limit, where } from 'firebase/firestore';
 import { ArrowLeft, Send, MoreHorizontal, Shield } from 'lucide-react';
 
 const ChatDetailScreen: React.FC<{matchId: string, onBack: any}> = ({ matchId, onBack }) => {
@@ -10,10 +10,15 @@ const ChatDetailScreen: React.FC<{matchId: string, onBack: any}> = ({ matchId, o
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!auth.currentUser) return;
+    if (!auth.currentUser || !matchId) return;
 
-    // In a real app we'd filter by conversation ID
-    const q = query(collection(db, "messages"), orderBy("timestamp", "asc"), limit(50));
+    // Fixed: Scoping query to current matchId to comply with security rules
+    const q = query(
+      collection(db, "messages"), 
+      where("matchId", "==", matchId),
+      orderBy("timestamp", "asc"), 
+      limit(100)
+    );
     
     const unsubscribe = onSnapshot(q, 
       (snapshot) => {
@@ -21,11 +26,14 @@ const ChatDetailScreen: React.FC<{matchId: string, onBack: any}> = ({ matchId, o
         setMessages(msgs);
         setLoading(false);
         setTimeout(() => {
-            scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+            if (scrollRef.current) {
+              scrollRef.current.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+            }
         }, 100);
       },
       (error) => {
-        console.error("Chat error:", error);
+        console.error("Chat permission or network error:", error);
+        setLoading(false);
       }
     );
 

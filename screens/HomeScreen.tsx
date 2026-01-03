@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { db, auth } from '../firebase';
-import { collection, query, where, addDoc, onSnapshot } from 'firebase/firestore';
-import { Heart, X, Star, MapPin, Info } from 'lucide-react';
+import { collection, query, where, addDoc, onSnapshot, limit } from 'firebase/firestore';
+import { Heart, X, Star, MapPin, Info, ShieldAlert } from 'lucide-react';
 import { UserProfile } from '../types';
 
 const HomeScreen: React.FC<{onLike: any, onNavigateToMatches: any}> = ({ onNavigateToMatches }) => {
@@ -11,53 +11,67 @@ const HomeScreen: React.FC<{onLike: any, onNavigateToMatches: any}> = ({ onNavig
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    if (!auth.currentUser) {
+    // Safety check: ensure user is logged in
+    const user = auth.currentUser;
+    if (!user) {
       setLoading(false);
       return;
     }
 
+    // Attempt to fetch other users. 
+    // Sometimes "__name__ != uid" queries are restricted by rules if they lead to collection-wide scans.
+    // We fetch a limited set for discovery.
     const q = query(
-      collection(db, "users"), 
-      where("__name__", "!=", auth.currentUser.uid)
+      collection(db, "users"),
+      limit(20)
     );
 
     const unsubscribe = onSnapshot(q, 
       (snapshot) => {
-        const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
+        const usersData = snapshot.docs
+          .map(doc => ({ id: doc.id, ...doc.data() } as UserProfile))
+          .filter(u => u.id !== user.uid); // Filter out self locally to be safe
         setUsers(usersData);
         setLoading(false);
         setError(null);
       },
       (err) => {
-        console.error("Firestore error:", err);
-        setError("Unable to connect to member directory.");
+        console.error("Discovery error:", err);
+        if (err.code === 'permission-denied') {
+          setError("Exclusive directory access restricted. Please verify your profile.");
+        } else {
+          setError("Connection to club server interrupted.");
+        }
         setLoading(false);
       }
     );
 
     return () => unsubscribe();
-  }, [auth.currentUser?.uid]);
+  }, []);
 
   const handleAction = async (targetUid: string, type: 'like' | 'pass') => {
-    if (!auth.currentUser) return;
+    const user = auth.currentUser;
+    if (!user) return;
     
     if (type === 'like') {
       try {
         await addDoc(collection(db, "likes"), { 
-          from: auth.currentUser.uid, 
+          from: user.uid, 
           to: targetUid, 
           timestamp: Date.now() 
         });
-      } catch (err) {
-        console.error("Error liking user:", err);
+      } catch (err: any) {
+        console.error("Action error:", err);
+        if (err.code === 'permission-denied') {
+          alert("Interaction restricted. Membership check failed.");
+        }
       }
     }
     
-    // Animate to next card
     if (currentIndex < users.length - 1) {
       setCurrentIndex(prev => prev + 1);
     } else {
-      setUsers([]); // Clear to show empty state
+      setUsers([]);
     }
   };
 
@@ -84,7 +98,16 @@ const HomeScreen: React.FC<{onLike: any, onNavigateToMatches: any}> = ({ onNavig
       </header>
 
       <div className="flex-1 flex flex-col items-center justify-center p-4 pb-28">
-        {!activeUser ? (
+        {error ? (
+          <div className="text-center space-y-4 max-w-xs animate-pulse">
+            <ShieldAlert size={32} className="text-[#8B0000] mx-auto mb-4" />
+            <h3 className="text-sm font-black uppercase tracking-widest italic text-white">Access Restricted</h3>
+            <p className="text-[11px] text-zinc-500 leading-relaxed uppercase tracking-widest font-bold">
+              {error}
+            </p>
+            <button onClick={() => window.location.reload()} className="text-[10px] text-[#8B0000] font-black uppercase tracking-widest underline pt-4">Retry Access</button>
+          </div>
+        ) : !activeUser ? (
              <div className="text-center space-y-4 max-w-xs">
                  <div className="w-16 h-16 bg-zinc-900 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Star size={24} className="text-zinc-700" />
@@ -99,18 +122,11 @@ const HomeScreen: React.FC<{onLike: any, onNavigateToMatches: any}> = ({ onNavig
             <div className="w-full max-w-sm relative group">
                 <div className="relative aspect-[4/5] bg-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5">
                     {activeUser.image && (
-                         activeUser.image.includes('/video/') || activeUser.image.endsWith('.mp4') ? (
-                             <video src={activeUser.image} className="w-full h-full object-cover" autoPlay muted loop playsInline />
-                         ) : (
-                             <img src={activeUser.image} alt={activeUser.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-                         )
+                         <img src={activeUser.image} alt={activeUser.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                     )}
                     
-                    {/* Vignette Gradients */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
-                    <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/40 to-transparent"></div>
                     
-                    {/* Info Overlay */}
                     <div className="absolute bottom-0 left-0 right-0 p-8 pt-20">
                         <div className="flex items-center gap-2 mb-1">
                             <h2 className="text-4xl font-black text-white italic tracking-tight">{activeUser.name}, {activeUser.age}</h2>
@@ -120,11 +136,6 @@ const HomeScreen: React.FC<{onLike: any, onNavigateToMatches: any}> = ({ onNavig
                             <div className="flex items-center gap-1 text-zinc-400">
                                 <MapPin size={12} className="text-[#8B0000]" />
                                 <span className="text-[11px] font-bold uppercase tracking-widest">{activeUser.location}</span>
-                            </div>
-                            <div className="h-1 w-1 bg-zinc-700 rounded-full"></div>
-                            <div className="flex items-center gap-1 text-zinc-400">
-                                <Info size={12} />
-                                <span className="text-[11px] font-bold uppercase tracking-widest">Active Now</span>
                             </div>
                         </div>
                         
@@ -143,26 +154,16 @@ const HomeScreen: React.FC<{onLike: any, onNavigateToMatches: any}> = ({ onNavig
                              </button>
                              <button 
                                 onClick={() => handleAction(activeUser.id, 'like')}
-                                className="flex-1 py-4 bg-[#8B0000] rounded-full text-white font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all premium-glow shadow-[0_0_30px_rgba(139,0,0,0.3)] hover:bg-[#A00000]"
+                                className="flex-1 py-4 bg-[#8B0000] rounded-full text-white font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all premium-glow"
                              >
                                 <Heart size={18} fill="currentColor" /> Match
                              </button>
                         </div>
                     </div>
                 </div>
-
-                {/* Decorative Elements */}
-                <div className="absolute -z-10 -bottom-4 inset-x-4 h-full bg-zinc-900/50 rounded-[2.5rem] transform translate-y-2 scale-[0.98]"></div>
-                <div className="absolute -z-20 -bottom-8 inset-x-8 h-full bg-zinc-900/30 rounded-[2.5rem] transform translate-y-4 scale-[0.95]"></div>
             </div>
         )}
       </div>
-
-      {error && (
-          <div className="absolute top-20 left-4 right-4 z-50 p-4 glass-panel border border-[#8B0000]/30 rounded-2xl text-center">
-              <p className="text-[#ff4444] text-[10px] font-bold uppercase tracking-widest">{error}</p>
-          </div>
-      )}
     </div>
   );
 };

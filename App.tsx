@@ -22,8 +22,7 @@ const App: React.FC = () => {
       if (user) {
         setCurrentUser(user);
         
-        // Helper to fetch profile with a small delay retry for race conditions
-        const tryFetchProfile = async (uid: string, retries = 1): Promise<void> => {
+        const tryFetchProfile = async (uid: string, retries = 2): Promise<void> => {
           try {
             const userDoc = await getDoc(doc(db, "users", uid));
             if (userDoc.exists()) {
@@ -32,13 +31,12 @@ const App: React.FC = () => {
               setCurrentScreen('profile');
             }
           } catch (err: any) {
-            console.warn(`Profile fetch attempt failed: ${err.message}`);
-            if (retries > 0 && err.code === 'permission-denied') {
-              // Wait 1.5s and try again once - sometimes auth tokens take a moment to propagate to Firestore
-              await new Promise(resolve => setTimeout(resolve, 1500));
+            console.warn(`Profile check: ${err.message}`);
+            // If it's a permission error, it might be the auth token haven't reached Firestore yet
+            if (retries > 0 && (err.code === 'permission-denied' || err.code === 'unauthenticated')) {
+              await new Promise(resolve => setTimeout(resolve, 800));
               return tryFetchProfile(uid, retries - 1);
             }
-            // If it still fails, assume profile setup is needed or show profile screen
             setCurrentScreen('profile');
           }
         };
