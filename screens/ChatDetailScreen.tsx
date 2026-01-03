@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { db, auth } from '../firebase';
-import { collection, addDoc, query, orderBy, onSnapshot, limit, where, doc, getDoc } from 'firebase/firestore';
-import { ArrowLeft, Send, MoreHorizontal, Shield, User as UserIcon, Lock, Fingerprint } from 'lucide-react';
+import { collection, addDoc, query, orderBy, onSnapshot, limit, where, doc, getDoc, setDoc } from 'firebase/firestore';
+import { ArrowLeft, Send, MoreHorizontal, Shield, User as UserIcon, Lock, Fingerprint, Camera } from 'lucide-react';
 import { UserProfile } from '../types';
 
 const ChatDetailScreen: React.FC<{chatId: string, onBack: any}> = ({ chatId, onBack }) => {
@@ -10,11 +10,18 @@ const ChatDetailScreen: React.FC<{chatId: string, onBack: any}> = ({ chatId, onB
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [partner, setPartner] = useState<UserProfile | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<UserProfile | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!auth.currentUser || !chatId) return;
 
+    // Fetch Current User Data (for Conversation Metadata)
+    getDoc(doc(db, "users", auth.currentUser.uid)).then(snap => {
+       if (snap.exists()) setCurrentUserProfile({ id: snap.id, ...snap.data() } as UserProfile);
+    });
+
+    // Fetch Partner Data
     const uids = chatId.split('--');
     const partnerUid = uids.find(id => id !== auth.currentUser?.uid);
 
@@ -24,6 +31,7 @@ const ChatDetailScreen: React.FC<{chatId: string, onBack: any}> = ({ chatId, onB
       });
     }
 
+    // Listen to Messages
     const q = query(
       collection(db, "messages"), 
       where("matchId", "==", chatId),
@@ -51,16 +59,40 @@ const ChatDetailScreen: React.FC<{chatId: string, onBack: any}> = ({ chatId, onB
   }, [chatId]);
 
   const handleSend = async () => {
-    if (!inputText.trim() || !auth.currentUser) return;
+    if (!inputText.trim() || !auth.currentUser || !partner) return;
     const text = inputText;
     setInputText('');
+    
     try {
+      // 1. Add Message to History
       await addDoc(collection(db, "messages"), {
         text: text,
         senderId: auth.currentUser.uid,
         timestamp: Date.now(),
         matchId: chatId
       });
+
+      // 2. Update Conversation Metadata for Inbox List
+      if (currentUserProfile) {
+        await setDoc(doc(db, "conversations", chatId), {
+          participants: [auth.currentUser.uid, partner.id],
+          lastMessage: text,
+          timestamp: Date.now(),
+          participantData: {
+            [auth.currentUser.uid]: {
+              name: currentUserProfile.name,
+              image: currentUserProfile.image || '',
+              username: currentUserProfile.username || ''
+            },
+            [partner.id]: {
+              name: partner.name,
+              image: partner.image || '',
+              username: partner.username || ''
+            }
+          }
+        }, { merge: true });
+      }
+
     } catch (err) {
       console.error("Failed to send:", err);
     }
@@ -75,10 +107,10 @@ const ChatDetailScreen: React.FC<{chatId: string, onBack: any}> = ({ chatId, onB
             </button>
             <div className="flex items-center gap-4">
                 <div className="relative">
-                    <div className="w-11 h-11 rounded-full bg-zinc-950 overflow-hidden border border-[#8B0000]/30 shadow-[0_0_10px_rgba(139,0,0,0.2)]">
+                    <div className="w-10 h-10 rounded-full bg-zinc-950 overflow-hidden border border-[#8B0000]/30">
                         {partner?.image ? <img src={partner.image} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-zinc-900"><UserIcon size={18} className="text-zinc-600" /></div>}
                     </div>
-                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-black rounded-full"></div>
+                    {/* Online indicator could go here */}
                 </div>
                 <div className="flex flex-col">
                     <div className="flex items-center gap-2">
@@ -88,7 +120,7 @@ const ChatDetailScreen: React.FC<{chatId: string, onBack: any}> = ({ chatId, onB
                     </div>
                     <div className="flex items-center gap-2 pt-0.5 opacity-60">
                         <Lock size={10} className="text-[#8B0000]" />
-                        <p className="text-[8px] text-zinc-400 font-black tracking-widest uppercase italic">Secure Protocol</p>
+                        <p className="text-[8px] text-zinc-400 font-black tracking-widest uppercase italic">End-to-End Encrypted</p>
                     </div>
                 </div>
             </div>
@@ -96,62 +128,66 @@ const ChatDetailScreen: React.FC<{chatId: string, onBack: any}> = ({ chatId, onB
         <button className="p-2 text-zinc-700 active:scale-90"><MoreHorizontal size={22} /></button>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar bg-[radial-gradient(circle_at_center,_#0a0a0a_0%,_#000_100%)]">
-        <div className="flex flex-col items-center justify-center py-16 space-y-6 opacity-30">
-            <div className="w-14 h-14 rounded-full border border-dashed border-zinc-800 flex items-center justify-center">
-               <Fingerprint size={28} className="text-zinc-700" />
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar bg-[radial-gradient(circle_at_center,_#0a0a0a_0%,_#000_100%)]">
+        <div className="flex flex-col items-center justify-center py-10 space-y-4 opacity-30">
+            <div className="w-12 h-12 rounded-full border border-dashed border-zinc-800 flex items-center justify-center">
+               <Fingerprint size={24} className="text-zinc-700" />
             </div>
-            <div className="text-center space-y-2">
-              <p className="text-[9px] font-black uppercase tracking-[0.5em] text-[#8B0000]">DISCRETE PROTOCOL ACTIVE</p>
-              <p className="text-[8px] font-bold uppercase tracking-[0.3em] text-zinc-700">Messages auto-purge from local memory</p>
-            </div>
+            <p className="text-[8px] font-bold uppercase tracking-[0.3em] text-zinc-700">Start of encrypted history</p>
         </div>
 
         {messages.map((msg, i) => {
           const isMe = msg.senderId === auth.currentUser?.uid;
-          const showTime = i === 0 || (msg.timestamp - messages[i-1].timestamp > 600000);
+          const showTime = i === 0 || (msg.timestamp - messages[i-1].timestamp > 1800000); // 30 mins
           
           return (
             <div key={msg.id} className="flex flex-col">
                 {showTime && (
-                    <div className="flex items-center justify-center gap-3 my-6 opacity-20">
-                        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-zinc-800"></div>
-                        <span className="text-[8px] text-zinc-600 font-black uppercase tracking-[0.4em]">
+                    <div className="text-center py-4">
+                        <span className="text-[9px] text-zinc-700 font-bold uppercase tracking-widest">
                             {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
-                        <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-zinc-800"></div>
                     </div>
                 )}
                 <div 
-                    className={`max-w-[80%] px-5 py-4 rounded-3xl text-[14px] leading-relaxed font-medium shadow-2xl transition-all duration-300 ${
+                    className={`max-w-[75%] px-5 py-3 rounded-3xl text-[14px] leading-relaxed font-medium shadow-sm mb-1 ${
                     isMe 
-                        ? 'bg-[#8B0000] text-white self-end rounded-tr-none premium-glow shadow-[0_4px_20px_rgba(139,0,0,0.3)]' 
-                        : 'bg-zinc-900/80 border border-white/5 text-zinc-200 self-start rounded-tl-none backdrop-blur-md'
+                        ? 'bg-[#8B0000] text-white self-end rounded-br-none' 
+                        : 'bg-zinc-900 text-zinc-200 self-start rounded-bl-none border border-white/5'
                     }`}
                 >
                     {msg.text}
                 </div>
+                {isMe && i === messages.length - 1 && (
+                   <p className="text-[9px] text-zinc-600 self-end mr-1 mt-1 font-bold uppercase tracking-widest">Delivered</p>
+                )}
             </div>
           );
         })}
       </div>
 
-      <div className="p-6 pb-12 glass-panel border-t border-white/5 relative">
-        <div className="flex items-center gap-4 bg-zinc-950/80 rounded-[2rem] p-3 border border-white/10 focus-within:border-[#8B0000]/40 transition-all backdrop-blur-xl">
+      <div className="p-4 pb-8 glass-panel border-t border-white/5 relative">
+        <div className="flex items-center gap-3 bg-zinc-900 rounded-full p-2 border border-white/10 focus-within:border-[#8B0000]/40 transition-all">
+            <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center flex-shrink-0">
+               <Camera size={20} className="text-[#8B0000]" />
+            </div>
             <input 
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="CONVEY DISCRETE MESSAGE..."
-                className="flex-1 bg-transparent px-5 py-4 text-xs font-black tracking-widest text-white focus:outline-none placeholder:text-zinc-800 uppercase"
+                placeholder="Message..."
+                className="flex-1 bg-transparent px-2 py-3 text-sm font-medium text-white focus:outline-none placeholder:text-zinc-600"
             />
-            <button 
-                onClick={handleSend} 
-                className="w-14 h-14 bg-white text-black rounded-full flex items-center justify-center active:scale-90 transition-all hover:bg-zinc-200 disabled:opacity-20 shadow-xl"
-                disabled={!inputText.trim()}
-            >
-                <Send size={22} fill="currentColor" strokeWidth={1} />
-            </button>
+            {inputText.trim() ? (
+              <button 
+                  onClick={handleSend} 
+                  className="px-4 py-2 bg-transparent text-[#8B0000] font-black text-xs uppercase tracking-widest hover:text-white transition-colors"
+              >
+                  Send
+              </button>
+            ) : (
+               <div className="px-4 text-zinc-600 text-xs font-black uppercase tracking-widest opacity-50">Send</div>
+            )}
         </div>
       </div>
     </div>

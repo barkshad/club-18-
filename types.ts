@@ -38,4 +38,16 @@ export interface ChatThread {
   unreadCount: number;
 }
 
+export interface Conversation {
+  id: string;
+  participants: string[];
+  lastMessage: string;
+  timestamp: number;
+  participantData: Record<string, {
+    name: string;
+    image: string;
+    username: string;
+  }>;
+}
+
 export type AppScreen = 'age-gate' | 'feed' | 'explore' | 'create' | 'inbox' | 'chat-detail' | 'profile';
