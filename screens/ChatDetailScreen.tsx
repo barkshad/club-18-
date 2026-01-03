@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db, auth } from '../firebase';
 import { collection, addDoc, query, orderBy, onSnapshot, limit, where, doc, getDoc } from 'firebase/firestore';
-import { ArrowLeft, Send, MoreHorizontal, Shield, User as UserIcon } from 'lucide-react';
+import { ArrowLeft, Send, MoreHorizontal, Shield, User as UserIcon, Lock, Fingerprint } from 'lucide-react';
 import { UserProfile } from '../types';
 
 const ChatDetailScreen: React.FC<{chatId: string, onBack: any}> = ({ chatId, onBack }) => {
@@ -15,7 +15,6 @@ const ChatDetailScreen: React.FC<{chatId: string, onBack: any}> = ({ chatId, onB
   useEffect(() => {
     if (!auth.currentUser || !chatId) return;
 
-    // Determine partner UID from chatId (uid1--uid2)
     const uids = chatId.split('--');
     const partnerUid = uids.find(id => id !== auth.currentUser?.uid);
 
@@ -32,8 +31,7 @@ const ChatDetailScreen: React.FC<{chatId: string, onBack: any}> = ({ chatId, onB
       limit(100)
     );
     
-    const unsubscribe = onSnapshot(q, 
-      (snapshot) => {
+    const unsubscribe = onSnapshot(q, (snapshot) => {
         const msgs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setMessages(msgs);
         setLoading(false);
@@ -69,50 +67,66 @@ const ChatDetailScreen: React.FC<{chatId: string, onBack: any}> = ({ chatId, onB
   };
 
   return (
-    <div className="flex flex-col h-screen bg-black fade-in">
-      <header className="px-6 py-4 border-b border-white/5 flex items-center justify-between glass-panel z-10 sticky top-0">
+    <div className="flex flex-col h-screen bg-black fade-in text-white">
+      <header className="px-6 py-6 border-b border-white/5 flex items-center justify-between glass-panel z-10 sticky top-0 shadow-2xl">
         <div className="flex items-center gap-4">
-            <button onClick={onBack} className="text-zinc-400 hover:text-white transition-colors p-1">
-            <ArrowLeft size={20} />
+            <button onClick={onBack} className="text-zinc-500 hover:text-white transition-colors p-2 active:scale-90">
+                <ArrowLeft size={22} />
             </button>
-            <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-zinc-900 overflow-hidden border border-white/10">
-                    {partner?.image ? <img src={partner.image} className="w-full h-full object-cover" /> : <UserIcon className="m-auto mt-2 text-zinc-700" />}
+            <div className="flex items-center gap-4">
+                <div className="relative">
+                    <div className="w-11 h-11 rounded-full bg-zinc-950 overflow-hidden border border-[#8B0000]/30 shadow-[0_0_10px_rgba(139,0,0,0.2)]">
+                        {partner?.image ? <img src={partner.image} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-zinc-900"><UserIcon size={18} className="text-zinc-600" /></div>}
+                    </div>
+                    <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-black rounded-full"></div>
                 </div>
                 <div className="flex flex-col">
-                    <div className="flex items-center gap-1.5">
-                        <h2 className="text-[12px] font-black uppercase tracking-widest italic">{partner?.name || 'Member'}</h2>
-                        <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                    <div className="flex items-center gap-2">
+                        <h2 className="text-[13px] font-black uppercase tracking-[0.2em] italic text-white/90">
+                          {partner?.username ? `@${partner.username}` : (partner?.name || 'MEMBER')}
+                        </h2>
                     </div>
-                    <p className="text-[9px] text-zinc-600 font-bold tracking-widest uppercase">Discrete Mode</p>
+                    <div className="flex items-center gap-2 pt-0.5 opacity-60">
+                        <Lock size={10} className="text-[#8B0000]" />
+                        <p className="text-[8px] text-zinc-400 font-black tracking-widest uppercase italic">Secure Protocol</p>
+                    </div>
                 </div>
             </div>
         </div>
-        <button className="text-zinc-500"><MoreHorizontal size={20} /></button>
+        <button className="p-2 text-zinc-700 active:scale-90"><MoreHorizontal size={22} /></button>
       </header>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar bg-[radial-gradient(circle_at_center,_#0a0a0a_0%,_#000_100%)]">
-        <div className="flex flex-col items-center justify-center py-10 space-y-2 opacity-30">
-            <Shield size={24} className="text-zinc-700" />
-            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-600">Discrete Protocol Enabled</p>
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar bg-[radial-gradient(circle_at_center,_#0a0a0a_0%,_#000_100%)]">
+        <div className="flex flex-col items-center justify-center py-16 space-y-6 opacity-30">
+            <div className="w-14 h-14 rounded-full border border-dashed border-zinc-800 flex items-center justify-center">
+               <Fingerprint size={28} className="text-zinc-700" />
+            </div>
+            <div className="text-center space-y-2">
+              <p className="text-[9px] font-black uppercase tracking-[0.5em] text-[#8B0000]">DISCRETE PROTOCOL ACTIVE</p>
+              <p className="text-[8px] font-bold uppercase tracking-[0.3em] text-zinc-700">Messages auto-purge from local memory</p>
+            </div>
         </div>
 
         {messages.map((msg, i) => {
           const isMe = msg.senderId === auth.currentUser?.uid;
-          const showTime = i === 0 || (msg.timestamp - messages[i-1].timestamp > 300000);
+          const showTime = i === 0 || (msg.timestamp - messages[i-1].timestamp > 600000);
           
           return (
             <div key={msg.id} className="flex flex-col">
                 {showTime && (
-                    <span className="text-[8px] text-zinc-700 font-bold uppercase tracking-widest text-center my-4 block">
-                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+                    <div className="flex items-center justify-center gap-3 my-6 opacity-20">
+                        <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-zinc-800"></div>
+                        <span className="text-[8px] text-zinc-600 font-black uppercase tracking-[0.4em]">
+                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-zinc-800"></div>
+                    </div>
                 )}
                 <div 
-                    className={`max-w-[75%] px-5 py-3 rounded-2xl text-[13px] leading-relaxed font-medium shadow-xl ${
+                    className={`max-w-[80%] px-5 py-4 rounded-3xl text-[14px] leading-relaxed font-medium shadow-2xl transition-all duration-300 ${
                     isMe 
-                        ? 'bg-[#8B0000] text-white self-end rounded-tr-none premium-glow' 
-                        : 'bg-zinc-900/80 border border-white/5 text-zinc-200 self-start rounded-tl-none'
+                        ? 'bg-[#8B0000] text-white self-end rounded-tr-none premium-glow shadow-[0_4px_20px_rgba(139,0,0,0.3)]' 
+                        : 'bg-zinc-900/80 border border-white/5 text-zinc-200 self-start rounded-tl-none backdrop-blur-md'
                     }`}
                 >
                     {msg.text}
@@ -122,21 +136,21 @@ const ChatDetailScreen: React.FC<{chatId: string, onBack: any}> = ({ chatId, onB
         })}
       </div>
 
-      <div className="p-4 pb-8 glass-panel border-t border-white/5 relative">
-        <div className="flex items-center gap-3 bg-zinc-950 rounded-2xl p-2 border border-white/5 focus-within:border-[#8B0000]/30 transition-all">
+      <div className="p-6 pb-12 glass-panel border-t border-white/5 relative">
+        <div className="flex items-center gap-4 bg-zinc-950/80 rounded-[2rem] p-3 border border-white/10 focus-within:border-[#8B0000]/40 transition-all backdrop-blur-xl">
             <input 
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Say something private..."
-                className="flex-1 bg-transparent px-4 py-3 text-sm text-white focus:outline-none placeholder:text-zinc-700"
+                placeholder="CONVEY DISCRETE MESSAGE..."
+                className="flex-1 bg-transparent px-5 py-4 text-xs font-black tracking-widest text-white focus:outline-none placeholder:text-zinc-800 uppercase"
             />
             <button 
                 onClick={handleSend} 
-                className="w-10 h-10 bg-white text-black rounded-xl flex items-center justify-center active:scale-90 transition-transform disabled:opacity-30"
+                className="w-14 h-14 bg-white text-black rounded-full flex items-center justify-center active:scale-90 transition-all hover:bg-zinc-200 disabled:opacity-20 shadow-xl"
                 disabled={!inputText.trim()}
             >
-                <Send size={18} fill="currentColor" />
+                <Send size={22} fill="currentColor" strokeWidth={1} />
             </button>
         </div>
       </div>
