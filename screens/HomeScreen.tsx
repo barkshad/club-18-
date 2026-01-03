@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { db, auth } from '../firebase';
 import { collection, query, addDoc, onSnapshot, limit } from 'firebase/firestore';
@@ -51,18 +52,16 @@ const HomeScreen: React.FC<{onMessage: (uid: string) => void, onNavigateToMatche
     
     if (type === 'message') {
       try {
-        // Record the interaction as a like/interest
+        // Record interest and navigate
         await addDoc(collection(db, "likes"), { 
           from: user.uid, 
           to: targetUid, 
           timestamp: Date.now(),
           directMessage: true
         });
-        // Immediately navigate to chat
         onMessage(targetUid);
       } catch (err: any) {
         console.error("Action error:", err);
-        // Fallback: still navigate to chat even if logging fails
         onMessage(targetUid);
       }
     } else {
@@ -113,7 +112,7 @@ const HomeScreen: React.FC<{onMessage: (uid: string) => void, onNavigateToMatche
                  </div>
                  <h3 className="text-sm font-black uppercase tracking-widest italic">All caught up</h3>
                  <p className="text-[11px] text-zinc-500 leading-relaxed uppercase tracking-widest font-bold">
-                    New exclusive members arrive daily. <br/>Check back soon for more connections.
+                    New exclusive members arrive daily. <br/>Check back soon for more.
                  </p>
                  <button onClick={() => window.location.reload()} className="text-[10px] text-[#8B0000] font-black uppercase tracking-widest underline pt-4">Refresh Feed</button>
              </div>
@@ -126,7 +125,7 @@ const HomeScreen: React.FC<{onMessage: (uid: string) => void, onNavigateToMatche
                     
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
                     
-                    <div className="absolute bottom-0 left-0 right-0 p-8 pt-20">
+                    <div className="absolute bottom-0 left-0 right-0 p-8 pt-20 text-left">
                         <div className="flex items-center gap-2 mb-1">
                             <h2 className="text-4xl font-black text-white italic tracking-tight">{activeUser.name}, {activeUser.age}</h2>
                         </div>
@@ -147,7 +146,7 @@ const HomeScreen: React.FC<{onMessage: (uid: string) => void, onNavigateToMatche
                         <div className="flex gap-4">
                              <button 
                                 onClick={() => handleAction(activeUser.id, 'pass')}
-                                className="w-14 h-14 bg-zinc-950/80 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center text-white active:scale-90 transition-all hover:bg-zinc-900"
+                                className="w-14 h-14 bg-zinc-950/80 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center text-white active:scale-90 transition-all"
                              >
                                 <X size={24} />
                              </button>
