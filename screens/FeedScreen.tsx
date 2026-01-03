@@ -1,8 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
-import { db } from '../firebase';
-import { collection, query, orderBy, onSnapshot, limit } from 'firebase/firestore';
-import { MessageCircle, MoreHorizontal, Heart, Share2, ShieldCheck, Zap, Bookmark } from 'lucide-react';
+import { auth, db } from '../firebase';
+import { collection, query, orderBy, onSnapshot, limit, deleteDoc, doc } from 'firebase/firestore';
+import { MessageCircle, MoreHorizontal, Heart, Share2, ShieldCheck, Zap, Bookmark, Trash2 } from 'lucide-react';
 import { Post } from '../types';
 
 const FeedScreen: React.FC<{onMessage: (uid: string) => void}> = ({ onMessage }) => {
@@ -17,6 +17,16 @@ const FeedScreen: React.FC<{onMessage: (uid: string) => void}> = ({ onMessage })
     });
     return () => unsubscribe();
   }, []);
+
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm("Permanently remove this moment from the feed?")) return;
+    try {
+      await deleteDoc(doc(db, "posts", postId));
+    } catch (err) {
+      console.error("Deletion failed:", err);
+      alert("Could not remove item.");
+    }
+  };
 
   if (loading) return (
     <div className="h-full flex items-center justify-center bg-black">
@@ -72,7 +82,16 @@ const FeedScreen: React.FC<{onMessage: (uid: string) => void}> = ({ onMessage })
                     <span className="text-[9px] text-zinc-500 font-medium uppercase tracking-tighter pt-0.5">Verified Member</span>
                   </div>
                 </div>
-                <button className="text-zinc-500 p-1"><MoreHorizontal size={18} /></button>
+                {post.uid === auth.currentUser?.uid ? (
+                  <button 
+                    onClick={() => handleDeletePost(post.id)}
+                    className="text-zinc-600 hover:text-red-500 p-1 transition-colors"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                ) : (
+                  <button className="text-zinc-500 p-1"><MoreHorizontal size={18} /></button>
+                )}
               </div>
               
               {/* Media */}

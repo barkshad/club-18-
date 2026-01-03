@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
-import { doc, setDoc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc } from 'firebase/firestore';
-import { Camera, CheckCircle2, Edit3, MapPin, Plus, Image as ImageIcon, Play, LogOut, Grid, ShieldCheck, Fingerprint } from 'lucide-react';
+import { doc, setDoc, getDoc, collection, query, where, orderBy, onSnapshot, addDoc, deleteDoc } from 'firebase/firestore';
+import { Camera, CheckCircle2, Edit3, MapPin, Plus, Image as ImageIcon, Play, LogOut, Grid, ShieldCheck, Fingerprint, Trash2, X } from 'lucide-react';
 import { UserProfile, Post } from '../types';
 
 const ProfileScreen: React.FC = () => {
@@ -125,6 +125,16 @@ const ProfileScreen: React.FC = () => {
       alert("Transmission failed.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!window.confirm("Permanently remove this moment from the club gallery?")) return;
+    try {
+      await deleteDoc(doc(db, "posts", postId));
+    } catch (err) {
+      console.error("Deletion failed:", err);
+      alert("Protocol interrupted. Could not delete.");
     }
   };
 
@@ -258,7 +268,7 @@ const ProfileScreen: React.FC = () => {
                 <div className="p-8 bg-zinc-950 border border-white/5 rounded-[2.5rem] animate-in slide-in-from-top-4 zoom-in-95 duration-500 shadow-2xl relative">
                     <div className="flex justify-between items-center mb-6">
                       <span className="text-[11px] font-black uppercase tracking-[0.3em] text-zinc-400">Moment Protocol</span>
-                      <button onClick={() => setIsUploadingMoment(false)} className="text-zinc-700 hover:text-white transition-colors"><Grid size={20} /></button>
+                      <button onClick={() => setIsUploadingMoment(false)} className="text-zinc-700 hover:text-white transition-colors"><X size={20} /></button>
                     </div>
                     <div className="relative h-60 bg-zinc-900/50 rounded-3xl overflow-hidden border border-dashed border-zinc-800 flex items-center justify-center group transition-all hover:border-[#8B0000]/50">
                         {momentFile ? (
@@ -304,7 +314,14 @@ const ProfileScreen: React.FC = () => {
                           ) : (
                             <img src={post.url} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-125" />
                           )}
-                          <div className="absolute inset-0 bg-[#8B0000]/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                          <div className="absolute inset-0 bg-[#8B0000]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); handleDeletePost(post.id); }}
+                                className="p-3 bg-black/60 rounded-full text-white hover:text-red-500 transition-colors"
+                            >
+                                <Trash2 size={20} />
+                            </button>
+                          </div>
                           {post.type === 'video' && <div className="absolute top-3 right-3 opacity-60"><Play size={12} fill="white" className="text-white" /></div>}
                       </div>
                   ))}
