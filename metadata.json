@@ -1,8 +1,10 @@
 {
   "name": "Club 18+",
+  "short_name": "Club18",
   "description": "A premium, exclusive dating PWA for adults to connect, chat, and find meaningful relationships with a sophisticated, minimalist aesthetic.",
   "requestFramePermissions": [
     "camera",
-    "geolocation"
+    "geolocation",
+    "microphone"
   ]
 }

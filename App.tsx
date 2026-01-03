@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
@@ -21,19 +20,30 @@ const App: React.FC = () => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        try {
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          setCurrentUser(user);
-          if (userDoc.exists()) {
-            setCurrentScreen('home');
-          } else {
+        setCurrentUser(user);
+        
+        // Helper to fetch profile with a small delay retry for race conditions
+        const tryFetchProfile = async (uid: string, retries = 1): Promise<void> => {
+          try {
+            const userDoc = await getDoc(doc(db, "users", uid));
+            if (userDoc.exists()) {
+              setCurrentScreen('home');
+            } else {
+              setCurrentScreen('profile');
+            }
+          } catch (err: any) {
+            console.warn(`Profile fetch attempt failed: ${err.message}`);
+            if (retries > 0 && err.code === 'permission-denied') {
+              // Wait 1.5s and try again once - sometimes auth tokens take a moment to propagate to Firestore
+              await new Promise(resolve => setTimeout(resolve, 1500));
+              return tryFetchProfile(uid, retries - 1);
+            }
+            // If it still fails, assume profile setup is needed or show profile screen
             setCurrentScreen('profile');
           }
-        } catch (err) {
-          console.error("Error fetching profile on login:", err);
-          setCurrentUser(user);
-          setCurrentScreen('profile'); // Fallback to profile setup if read fails
-        }
+        };
+
+        await tryFetchProfile(user.uid);
       } else {
         setCurrentUser(null);
         setCurrentScreen('age-gate');
