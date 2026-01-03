@@ -8,20 +8,14 @@ import AgeGate from './screens/AgeGate';
 import FeedScreen from './screens/FeedScreen';
 import ExploreScreen from './screens/ExploreScreen';
 import CreatePostScreen from './screens/CreatePostScreen';
-import ChatListScreen from './screens/ChatListScreen';
-import ChatDetailScreen from './screens/ChatDetailScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import NavigationBar from './components/NavigationBar';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('age-gate');
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const getChatId = (uid1: string, uid2: string) => {
-    return [uid1, uid2].sort().join('--');
-  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -31,7 +25,7 @@ const App: React.FC = () => {
         if (userDoc.exists()) {
           const userData = userDoc.data();
           if (userData.status === 'pending_onboarding') {
-            setCurrentScreen('age-gate'); // AgeGate will handle step='onboard' internally or we can trigger it
+            setCurrentScreen('age-gate');
           } else if (currentScreen === 'age-gate') {
             setCurrentScreen('feed');
           }
@@ -47,11 +41,18 @@ const App: React.FC = () => {
     return () => unsubscribe();
   }, [currentScreen]);
 
-  const navigateToChat = (partnerUid: string) => {
-    if (!auth.currentUser) return;
-    const chatId = getChatId(auth.currentUser.uid, partnerUid);
-    setSelectedChatId(chatId);
-    setCurrentScreen('chat-detail');
+  const handleViewProfile = (uid: string) => {
+    setViewingProfileId(uid);
+    setCurrentScreen('profile');
+  };
+
+  const handleNavigate = (screen: AppScreen) => {
+    if (screen === 'profile') {
+      setViewingProfileId(auth.currentUser?.uid || null);
+    } else {
+      setViewingProfileId(null);
+    }
+    setCurrentScreen(screen);
   };
 
   if (loading) {
@@ -67,19 +68,15 @@ const App: React.FC = () => {
       case 'age-gate':
         return <AgeGate onVerify={() => setCurrentScreen('feed')} />;
       case 'feed':
-        return <FeedScreen onMessage={navigateToChat} />;
+        return <FeedScreen onMemberTap={handleViewProfile} />;
       case 'explore':
-        return <ExploreScreen onSelectPost={(uid) => navigateToChat(uid)} />;
+        return <ExploreScreen onSelectPost={handleViewProfile} />;
       case 'create':
         return <CreatePostScreen onSuccess={() => setCurrentScreen('feed')} />;
-      case 'inbox':
-        return <ChatListScreen onChatSelect={(id) => { setSelectedChatId(id); setCurrentScreen('chat-detail'); }} />;
-      case 'chat-detail':
-        return <ChatDetailScreen chatId={selectedChatId || ''} onBack={() => setCurrentScreen('inbox')} />;
       case 'profile':
-        return <ProfileScreen />;
+        return <ProfileScreen userId={viewingProfileId || auth.currentUser?.uid || ''} onBack={() => setCurrentScreen('feed')} />;
       default:
-        return <FeedScreen onMessage={navigateToChat} />;
+        return <FeedScreen onMemberTap={handleViewProfile} />;
     }
   };
 
@@ -89,11 +86,10 @@ const App: React.FC = () => {
         {renderScreen()}
       </main>
       
-      {currentUser && currentScreen !== 'chat-detail' && currentScreen !== 'age-gate' && (
+      {currentUser && currentScreen !== 'age-gate' && (
         <NavigationBar 
           activeScreen={currentScreen} 
-          onNavigate={(screen) => setCurrentScreen(screen)} 
-          unreadCount={0}
+          onNavigate={handleNavigate} 
         />
       )}
     </div>
