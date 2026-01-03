@@ -1,9 +1,7 @@
-
 import React, { useState } from 'react';
-import { auth, db, storage } from '../firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { auth, db } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
-import { Camera, Check } from 'lucide-react';
+import { Camera } from 'lucide-react';
 
 const ProfileScreen: React.FC = () => {
   const [name, setName] = useState('');
@@ -17,15 +15,46 @@ const ProfileScreen: React.FC = () => {
     if (!auth.currentUser || !file) return alert("Please upload a photo.");
     setLoading(true);
     try {
+      // OLD (Firebase Storage)
+      /*
       const storageRef = ref(storage, `photos/${auth.currentUser.uid}`);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
+      */
 
-      await setDoc(doc(db, "users", auth.currentUser.uid), {
-        name, age: parseInt(age), bio, location, image: url
+      // NEW (Cloudinary - Unsigned Upload)
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'real_unsigned');
+      
+      // Determine endpoint based on file type
+      const resourceType = file.type.startsWith('video/') ? 'video' : 'image';
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/ds2mbrzcn/${resourceType}/upload`;
+
+      const response = await fetch(cloudinaryUrl, {
+        method: 'POST',
+        body: formData
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload media to Cloudinary');
+      }
+
+      const data = await response.json();
+      const url = data.secure_url;
+
+      // Firestore update remains exactly the same
+      await setDoc(doc(db, "users", auth.currentUser.uid), {
+        name, 
+        age: parseInt(age), 
+        bio, 
+        location, 
+        image: url
+      });
+      
       alert("Profile updated successfully.");
     } catch (err: any) {
+      console.error(err);
       alert(err.message);
     }
     setLoading(false);
@@ -37,12 +66,17 @@ const ProfileScreen: React.FC = () => {
       
       <div className="relative w-32 h-32 rounded-full bg-zinc-900 overflow-hidden flex items-center justify-center border-2 border-zinc-800">
         {file ? (
-          <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" />
+          file.type.startsWith('video/') ? (
+             <video src={URL.createObjectURL(file)} className="w-full h-full object-cover" autoPlay muted loop />
+          ) : (
+             <img src={URL.createObjectURL(file)} className="w-full h-full object-cover" />
+          )
         ) : (
           <Camera size={32} className="text-zinc-700" />
         )}
         <input 
           type="file" 
+          accept="image/*,video/*"
           className="absolute inset-0 opacity-0 cursor-pointer" 
           onChange={(e) => setFile(e.target.files?.[0] || null)}
         />
@@ -53,36 +87,36 @@ const ProfileScreen: React.FC = () => {
           placeholder="Public Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full bg-zinc-950 border border-zinc-900 rounded-lg p-3 text-sm"
+          className="w-full bg-zinc-950 border border-zinc-900 rounded-lg p-3 text-sm focus:outline-none focus:border-[#8B0000]"
         />
         <input 
           placeholder="Age"
           value={age}
           onChange={(e) => setAge(e.target.value)}
-          className="w-full bg-zinc-950 border border-zinc-900 rounded-lg p-3 text-sm"
+          className="w-full bg-zinc-950 border border-zinc-900 rounded-lg p-3 text-sm focus:outline-none focus:border-[#8B0000]"
         />
         <input 
           placeholder="Location (e.g. NYC, London)"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          className="w-full bg-zinc-950 border border-zinc-900 rounded-lg p-3 text-sm"
+          className="w-full bg-zinc-950 border border-zinc-900 rounded-lg p-3 text-sm focus:outline-none focus:border-[#8B0000]"
         />
         <textarea 
           placeholder="Short Bio..."
           value={bio}
           onChange={(e) => setBio(e.target.value)}
-          className="w-full bg-zinc-950 border border-zinc-900 rounded-lg p-3 text-sm h-24"
+          className="w-full bg-zinc-950 border border-zinc-900 rounded-lg p-3 text-sm h-24 focus:outline-none focus:border-[#8B0000]"
         />
 
         <button 
           onClick={handleSave}
           disabled={loading}
-          className="w-full py-4 bg-[#8B0000] text-white rounded-full font-black text-xs uppercase tracking-widest"
+          className="w-full py-4 bg-[#8B0000] text-white rounded-full font-black text-xs uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50"
         >
           {loading ? 'Processing...' : 'Complete Profile'}
         </button>
         
-        <button onClick={() => auth.signOut()} className="w-full text-zinc-600 text-[10px] uppercase font-bold tracking-widest">Logout</button>
+        <button onClick={() => auth.signOut()} className="w-full text-zinc-600 text-[10px] uppercase font-bold tracking-widest mt-4">Logout</button>
       </div>
     </div>
   );

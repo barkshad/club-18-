@@ -1,20 +1,23 @@
-
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { getStorage } from "firebase/storage";
+import { getAnalytics } from "firebase/analytics";
 
-// REPLACE THESE WITH YOUR KEYS FROM FIREBASE CONSOLE
+// NEW (Firebase Config - Updated with project specific keys)
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBHCt4AiGPNAOJLV2yHACIxv6fhkHktrAA",
+  authDomain: "club18.firebaseapp.com",
+  projectId: "club18",
+  storageBucket: "club18.firebasestorage.app",
+  messagingSenderId: "179096912838",
+  appId: "1:179096912838:web:860bbae500d45d5f77e8c7",
+  measurementId: "G-HXFP1TF5F3"
 };
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const storage = getStorage(app);
+export const analytics = typeof window !== 'undefined' ? getAnalytics(app) : null;
+
+// REMOVED (Firebase Storage)
+// export const storage = getStorage(app);
