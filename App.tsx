@@ -14,29 +14,33 @@ import NavigationBar from './components/NavigationBar';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [hasProfile, setHasProfile] = useState(false);
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('age-gate');
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
       if (user) {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-          setHasProfile(true);
-          setCurrentScreen('home');
-        } else {
-          setHasProfile(false);
-          setCurrentScreen('profile');
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          setCurrentUser(user);
+          if (userDoc.exists()) {
+            setCurrentScreen('home');
+          } else {
+            setCurrentScreen('profile');
+          }
+        } catch (err) {
+          console.error("Error fetching profile on login:", err);
+          setCurrentUser(user);
+          setCurrentScreen('profile'); // Fallback to profile setup if read fails
         }
       } else {
+        setCurrentUser(null);
         setCurrentScreen('age-gate');
       }
       setLoading(false);
     });
-    return unsubscribe;
+    return () => unsubscribe();
   }, []);
 
   const navigateToChat = (chatId: string) => {
@@ -47,7 +51,7 @@ const App: React.FC = () => {
   if (loading) {
     return (
       <div className="h-screen bg-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-t-[#8B0000] border-zinc-900 rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-2 border-[#8B0000] border-t-transparent rounded-full animate-spin shadow-[0_0_15px_rgba(139,0,0,0.5)]"></div>
       </div>
     );
   }
@@ -55,11 +59,11 @@ const App: React.FC = () => {
   const renderScreen = () => {
     switch (currentScreen) {
       case 'age-gate':
-        return <AgeGate onVerify={() => {}} />; // Verification handled inside AgeGate
+        return <AgeGate onVerify={() => {}} />;
       case 'home':
         return <HomeScreen onLike={() => {}} onNavigateToMatches={() => setCurrentScreen('matches')} />;
       case 'matches':
-        return <MatchesScreen onChat={navigateToChat} />;
+        return <MatchesScreen matchedIds={[]} onChat={navigateToChat} />;
       case 'chat-list':
         return <ChatListScreen onChatSelect={navigateToChat} />;
       case 'chat-detail':
@@ -77,7 +81,7 @@ const App: React.FC = () => {
         {renderScreen()}
       </main>
       
-      {currentUser && currentScreen !== 'chat-detail' && (
+      {currentUser && currentScreen !== 'chat-detail' && currentScreen !== 'age-gate' && (
         <NavigationBar 
           activeScreen={currentScreen} 
           onNavigate={(screen) => setCurrentScreen(screen)} 

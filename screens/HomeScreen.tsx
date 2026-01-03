@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { db, auth } from '../firebase';
-import { collection, getDocs, query, where, addDoc, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, addDoc, onSnapshot } from 'firebase/firestore';
 import { Heart, MoreHorizontal, ShieldCheck, MessageCircle, Send, Bookmark } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -10,35 +10,61 @@ const HomeScreen: React.FC<{onLike: any, onNavigateToMatches: any}> = ({ onNavig
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, "users"), where("__name__", "!=", auth.currentUser?.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
-      setUsers(usersData);
+    // Only subscribe if we have a valid authenticated user
+    if (!auth.currentUser) {
       setLoading(false);
-    });
-    return unsubscribe;
-  }, []);
+      return;
+    }
+
+    const q = query(
+      collection(db, "users"), 
+      where("__name__", "!=", auth.currentUser.uid)
+    );
+
+    const unsubscribe = onSnapshot(q, 
+      (snapshot) => {
+        const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserProfile));
+        setUsers(usersData);
+        setLoading(false);
+      },
+      (error) => {
+        console.error("Firestore error:", error);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [auth.currentUser?.uid]); // Re-run when auth state stabilizes
 
   const handleLike = async (targetUid: string) => {
     if (!auth.currentUser) return;
     const me = auth.currentUser.uid;
     
-    // Check for match
-    await addDoc(collection(db, "likes"), { from: me, to: targetUid, timestamp: Date.now() });
-    
-    // In a real app, you'd trigger a match check cloud function or query here.
-    // For this simple system, we just record the like.
-    alert("Liked! If they like you back, you'll find them in Connections.");
+    try {
+      await addDoc(collection(db, "likes"), { 
+        from: me, 
+        to: targetUid, 
+        timestamp: Date.now() 
+      });
+      alert("Liked! If they like you back, you'll find them in Connections.");
+    } catch (err) {
+      console.error("Error liking user:", err);
+      alert("Permission denied. Ensure you are logged in.");
+    }
   };
 
-  if (loading) return <div className="h-full bg-black"></div>;
+  if (loading) return (
+    <div className="h-full flex items-center justify-center bg-black">
+      <div className="w-6 h-6 border-2 border-[#8B0000] border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col bg-black min-h-screen">
       <header className="sticky top-0 z-40 bg-black/95 backdrop-blur-md px-4 py-3 flex justify-between items-center border-b border-zinc-900">
         <h1 className="text-2xl font-black tracking-tighter italic">CLUB 18<span className="text-[#8B0000] not-italic">+</span></h1>
         <div className="flex gap-6 items-center">
-           <Heart size={24} className="text-white" onClick={onNavigateToMatches} />
+           <Heart size={24} className="text-white cursor-pointer" onClick={onNavigateToMatches} />
            <MessageCircle size={24} className="text-white" />
         </div>
       </header>
@@ -64,7 +90,7 @@ const HomeScreen: React.FC<{onLike: any, onNavigateToMatches: any}> = ({ onNavig
 
             <div className="px-3 pt-3 pb-2 flex justify-between items-center">
               <div className="flex gap-4 items-center">
-                <Heart size={28} className="text-white hover:text-[#8B0000]" onClick={() => handleLike(user.id)} />
+                <Heart size={28} className="text-white hover:text-[#8B0000] cursor-pointer" onClick={() => handleLike(user.id)} />
                 <MessageCircle size={28} className="text-white" />
               </div>
               <Bookmark size={28} className="text-white" />
