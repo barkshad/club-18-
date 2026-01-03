@@ -52,7 +52,6 @@ const HomeScreen: React.FC<{onMessage: (uid: string) => void, onNavigateToMatche
     
     if (type === 'message') {
       try {
-        // Record interest and navigate
         await addDoc(collection(db, "likes"), { 
           from: user.uid, 
           to: targetUid, 
@@ -68,7 +67,8 @@ const HomeScreen: React.FC<{onMessage: (uid: string) => void, onNavigateToMatche
       if (currentIndex < users.length - 1) {
         setCurrentIndex(prev => prev + 1);
       } else {
-        setUsers([]); // End of deck
+        // Reset or fetch more could go here
+        setCurrentIndex(0); // Loop for demo
       }
     }
   };
@@ -83,6 +83,7 @@ const HomeScreen: React.FC<{onMessage: (uid: string) => void, onNavigateToMatche
   );
 
   const activeUser = users[currentIndex];
+  const nextUser = users[currentIndex + 1] || users[0]; // Simple loop fallback for visual stack
 
   return (
     <div className="flex flex-col bg-black min-h-screen fade-in relative overflow-hidden">
@@ -95,7 +96,7 @@ const HomeScreen: React.FC<{onMessage: (uid: string) => void, onNavigateToMatche
         </button>
       </header>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-4 pb-28">
+      <div className="flex-1 flex flex-col items-center justify-center p-4 pb-28 relative">
         {error ? (
           <div className="text-center space-y-4 max-w-xs animate-pulse">
             <ShieldAlert size={32} className="text-[#8B0000] mx-auto mb-4" />
@@ -117,8 +118,16 @@ const HomeScreen: React.FC<{onMessage: (uid: string) => void, onNavigateToMatche
                  <button onClick={() => window.location.reload()} className="text-[10px] text-[#8B0000] font-black uppercase tracking-widest underline pt-4">Refresh Feed</button>
              </div>
         ) : (
-            <div className="w-full max-w-sm relative group">
-                <div className="relative aspect-[4/5] bg-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5">
+            <div className="w-full max-w-sm relative h-[65vh]">
+                {/* Background Stack Card (Visual only) */}
+                {nextUser && (
+                   <div className="absolute inset-0 top-4 scale-95 opacity-40 rounded-[2.5rem] overflow-hidden bg-zinc-900 border border-white/5 -z-10 transition-all duration-300">
+                      {nextUser.image && <img src={nextUser.image} className="w-full h-full object-cover grayscale" />}
+                   </div>
+                )}
+
+                {/* Active Card */}
+                <div className="relative w-full h-full bg-zinc-900 rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/5 group z-10">
                     {activeUser.image && (
                          <img src={activeUser.image} alt={activeUser.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                     )}

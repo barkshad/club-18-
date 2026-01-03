@@ -29,9 +29,14 @@ const App: React.FC = () => {
         setCurrentUser(user);
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
-          if (currentScreen === 'age-gate') setCurrentScreen('feed');
+          const userData = userDoc.data();
+          if (userData.status === 'pending_onboarding') {
+            setCurrentScreen('age-gate'); // AgeGate will handle step='onboard' internally or we can trigger it
+          } else if (currentScreen === 'age-gate') {
+            setCurrentScreen('feed');
+          }
         } else {
-          setCurrentScreen('profile');
+          setCurrentScreen('age-gate');
         }
       } else {
         setCurrentUser(null);
@@ -52,7 +57,7 @@ const App: React.FC = () => {
   if (loading) {
     return (
       <div className="h-screen bg-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#8B0000] border-t-transparent rounded-full animate-spin shadow-[0_0_15px_rgba(139,0,0,0.5)]"></div>
+        <div className="w-10 h-10 border-2 border-[#8B0000] border-t-transparent rounded-full animate-spin shadow-[0_0_15px_rgba(139,0,0,0.5)]"></div>
       </div>
     );
   }
@@ -60,7 +65,7 @@ const App: React.FC = () => {
   const renderScreen = () => {
     switch (currentScreen) {
       case 'age-gate':
-        return <AgeGate onVerify={() => {}} />;
+        return <AgeGate onVerify={() => setCurrentScreen('feed')} />;
       case 'feed':
         return <FeedScreen onMessage={navigateToChat} />;
       case 'explore':

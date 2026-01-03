@@ -26,6 +26,8 @@ export interface Message {
   id: string;
   senderId: string;
   text: string;
+  image?: string;
+  type?: 'text' | 'image';
   timestamp: number;
   isRead: boolean;
   matchId: string;
