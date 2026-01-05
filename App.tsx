@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -18,7 +18,6 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [sessionBypassed, setSessionBypassed] = useState(false);
 
-  // Persistence for the "Bypass" state during the browser session
   useEffect(() => {
     const savedBypass = sessionStorage.getItem('club_18_bypass') === 'true';
     if (savedBypass) {
@@ -37,18 +36,16 @@ const App: React.FC = () => {
             if (!sessionBypassed) setCurrentScreen('feed');
           }
         } catch (e) {
-          console.warn("Firestore profile check deferred.");
+          console.warn("Auth check deferred.");
         }
       } else {
         setCurrentUser(null);
-        // Only force Age Gate if not already bypassed for this session
         if (!sessionBypassed && sessionStorage.getItem('club_18_bypass') !== 'true') {
           setCurrentScreen('age-gate');
         }
       }
       setLoading(false);
     });
-
     return () => unsubscribe();
   }, [sessionBypassed]);
 
@@ -65,7 +62,7 @@ const App: React.FC = () => {
 
   const handleNavigate = (screen: AppScreen) => {
     if (screen === 'profile') {
-      setViewingProfileId(auth.currentUser?.uid || 'guest-user');
+      setViewingProfileId(auth.currentUser?.uid || 'guest-1');
     } else {
       setViewingProfileId(null);
     }
@@ -79,7 +76,7 @@ const App: React.FC = () => {
           <div className="absolute inset-0 border-2 border-[#8B0000]/10 rounded-full"></div>
           <div className="absolute inset-0 border-2 border-[#FF0000] border-t-transparent rounded-full animate-spin shadow-[0_0_25px_rgba(139,0,0,0.6)]"></div>
         </div>
-        <p className="mt-8 text-[10px] font-black uppercase tracking-[0.6em] text-zinc-600 animate-pulse">Authenticating Club Access...</p>
+        <p className="mt-8 text-[10px] font-black uppercase tracking-[0.6em] text-zinc-600 animate-pulse">Authenticating...</p>
       </div>
     );
   }
@@ -96,7 +93,7 @@ const App: React.FC = () => {
         return <CreatePostScreen onSuccess={() => setCurrentScreen('feed')} />;
       case 'profile':
         return <ProfileScreen 
-          userId={viewingProfileId || auth.currentUser?.uid || 'guest-user'} 
+          userId={viewingProfileId || 'guest-1'} 
           onBack={() => setCurrentScreen('feed')} 
         />;
       default:
@@ -109,12 +106,8 @@ const App: React.FC = () => {
       <main className="flex-1 overflow-y-auto no-scrollbar pb-16 relative z-10">
         {renderScreen()}
       </main>
-      
       {currentScreen !== 'age-gate' && (
-        <NavigationBar 
-          activeScreen={currentScreen} 
-          onNavigate={handleNavigate} 
-        />
+        <NavigationBar activeScreen={currentScreen} onNavigate={handleNavigate} />
       )}
     </div>
   );

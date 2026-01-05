@@ -1,7 +1,9 @@
 {
   "name": "Club 18+",
-  "description": "An exclusive social network for verified members, featuring a premium feed, private encrypted messaging, and identity verification.",
+  "description": "An exclusive social platform for 18+ members with verification and direct messaging features.",
   "requestFramePermissions": [
-    "camera"
+    "camera",
+    "microphone",
+    "geolocation"
   ]
 }

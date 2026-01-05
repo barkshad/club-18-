@@ -2,6 +2,7 @@
 export interface UserSocials {
   instagram?: string;
   whatsapp?: string;
+  phone?: string;
   tiktok?: string;
   x?: string;
   onlyfans?: string;
@@ -9,50 +10,38 @@ export interface UserSocials {
 
 export interface UserProfile {
   id: string;
-  username?: string;
+  username: string;
   name: string;
   age: number;
   bio: string;
-  image: string;
+  image: string; // Mandatory Photo
+  videoUrl?: string; // Mandatory Video
   location: string;
+  area?: string;
+  distance?: number; // Distance in km
+  availableFor?: string;
+  intent?: string;
+  verified: boolean;
   socials?: UserSocials;
-  status?: string;
-  createdAt?: number;
+  status: 'verified_member' | 'pending_onboarding' | 'guest';
+  isOnline: boolean;
+  // Fix: Added missing interests property required by MOCK_USERS in data.ts
   interests?: string[];
 }
 
-export interface Post {
-  id: string;
-  uid: string;
-  url: string;
-  type: 'image' | 'video';
-  timestamp: number;
-  caption?: string;
-  userName?: string;
-  userImage?: string;
-}
-
-// Added missing Message interface to fix screens/ChatDetailScreen.tsx
+// Fix: Added missing Message interface exported for screens and data.ts
 export interface Message {
   id: string;
-  text: string;
   senderId: string;
+  text: string;
   timestamp: number;
   matchId: string;
+  isRead?: boolean;
   type?: 'text' | 'image';
   image?: string;
-  isRead?: boolean;
 }
 
-// Added missing ChatThread interface to fix data.ts
-export interface ChatThread {
-  id: string;
-  partner: UserProfile;
-  lastMessage: Message;
-  unreadCount: number;
-}
-
-// Added missing Conversation interface to fix screens/ChatListScreen.tsx
+// Fix: Added missing Conversation interface exported for ChatListScreen.tsx
 export interface Conversation {
   id: string;
   participants: string[];
@@ -63,8 +52,28 @@ export interface Conversation {
       name: string;
       image: string;
       username: string;
-    };
+    }
   };
+}
+
+// Fix: Added missing ChatThread interface exported for data.ts
+export interface ChatThread {
+  id: string;
+  partner: UserProfile;
+  lastMessage: Message;
+  unreadCount: number;
+}
+
+// Fix: Added missing Post interface exported for ExploreScreen.tsx and CreatePostScreen.tsx
+export interface Post {
+  id: string;
+  uid: string;
+  userName: string;
+  userImage: string;
+  url: string;
+  caption: string;
+  type: 'image' | 'video';
+  timestamp: number;
 }
 
 export type AppScreen = 'age-gate' | 'feed' | 'explore' | 'create' | 'profile';
