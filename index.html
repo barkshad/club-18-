@@ -7,14 +7,15 @@
     <title>Club 18+ | Exclusive Private Connections</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       :root {
         --club-red: #8B0000;
-        --club-red-glow: rgba(139, 0, 0, 0.4);
+        --club-red-bright: #FF0000;
+        --club-red-glow: rgba(139, 0, 0, 0.6);
         --app-bg: #000000;
-        --card-bg: #0A0A0A;
+        --card-bg: rgba(10, 10, 10, 0.8);
         --border: rgba(255, 255, 255, 0.08);
       }
       body {
@@ -32,32 +33,130 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
       }
-      .safe-bottom {
-        padding-bottom: env(safe-area-inset-bottom);
-      }
+
+      /* 1. Glassmorphism */
       .glass-panel {
-        background: rgba(0, 0, 0, 0.85);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        background: rgba(10, 10, 10, 0.7);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.05);
       }
-      .premium-glow {
-        box-shadow: 0 0 40px var(--club-red-glow);
+
+      /* 5. Animated Gradients */
+      .animated-bg-gradient {
+        background: linear-gradient(-45deg, #000000, #0a0a0a, #1a0000, #000000);
+        background-size: 400% 400%;
+        animation: gradientBG 15s ease infinite;
       }
+      @keyframes gradientBG {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      /* 14. Noise texture overlay */
+      .noise-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        opacity: 0.04;
+        z-index: 9999;
+        background-image: url('https://grainy-gradients.vercel.app/noise.svg');
+      }
+
+      /* 17. Subtle Vignette */
+      .vignette {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(circle, transparent 40%, rgba(0,0,0,0.8) 100%);
+        z-index: 50;
+      }
+
+      /* 22. Gradient Text */
+      .text-gradient-red {
+        background: linear-gradient(to right, #8B0000, #FF0000, #8B0000);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        background-size: 200% auto;
+        animation: shine 3s linear infinite;
+      }
+      @keyframes shine {
+        to { background-position: 200% center; }
+      }
+
+      /* 16. Glow Outlines */
+      .glow-red {
+        box-shadow: 0 0 20px var(--club-red-glow);
+      }
+
+      /* 31. Reflective Buttons */
+      .btn-reflective {
+        position: relative;
+        overflow: hidden;
+      }
+      .btn-reflective::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(
+          to bottom right,
+          rgba(255, 255, 255, 0) 0%,
+          rgba(255, 255, 255, 0) 40%,
+          rgba(255, 255, 255, 0.1) 50%,
+          rgba(255, 255, 255, 0) 60%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        transform: rotate(45deg);
+        animation: reflect 4s infinite;
+        pointer-events: none;
+      }
+      @keyframes reflect {
+        0% { transform: translateX(-100%) rotate(45deg); }
+        20%, 100% { transform: translateX(100%) rotate(45deg); }
+      }
+
+      /* 59. Animated Background Haze */
+      .haze-layer {
+        position: fixed;
+        width: 150vw;
+        height: 150vh;
+        top: -25vh;
+        left: -25vw;
+        background: radial-gradient(circle at 50% 50%, rgba(139, 0, 0, 0.08), transparent 50%);
+        filter: blur(80px);
+        animation: hazeMove 20s infinite alternate ease-in-out;
+        z-index: -1;
+      }
+      @keyframes hazeMove {
+        from { transform: translate(0, 0) scale(1); }
+        to { transform: translate(10vw, 10vh) scale(1.1); }
+      }
+
+      /* 104. Hover Scale */
+      .hover-scale {
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      }
+      .hover-scale:hover {
+        transform: scale(1.02);
+      }
+
       .text-glow {
-        text-shadow: 0 0 15px var(--club-red-glow);
+        text-shadow: 0 0 10px var(--club-red-glow);
       }
-      .fade-in {
-        animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-      }
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(8px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-      /* Instagram-style media container */
+
       .media-container {
         position: relative;
         width: 100%;
         background-color: #050505;
+        overflow: hidden;
       }
       .media-container::after {
         content: "";
@@ -83,17 +182,22 @@
     "firebase/auth": "https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js",
     "firebase/firestore": "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js",
     "firebase/analytics": "https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics.js",
-    "firebase/": "https://esm.sh/firebase@^12.7.0/",
     "vite": "https://esm.sh/vite@^7.3.0",
+    "react/": "https://esm.sh/react@^19.2.3/",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/"
+    "firebase/": "https://esm.sh/firebase@^12.7.0/"
   }
 }
 </script>
   </head>
-  <body class="bg-black text-white selection:bg-red-900 overflow-hidden">
-    <div id="root" class="h-screen w-screen overflow-hidden"></div>
+  <body class="bg-black text-white selection:bg-red-900 overflow-hidden animated-bg-gradient">
+    <div class="noise-overlay"></div>
+    <div class="vignette"></div>
+    <div class="haze-layer"></div>
+    <div class="haze-layer" style="animation-delay: -10s; background: radial-gradient(circle at 30% 70%, rgba(50, 0, 0, 0.1), transparent 50%);"></div>
+    
+    <div id="root" class="h-screen w-screen overflow-hidden relative z-10"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
 </html>

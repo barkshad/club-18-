@@ -1,10 +1,7 @@
 {
   "name": "Club 18+",
-  "short_name": "Club18",
-  "description": "A premium, exclusive dating PWA for adults to connect, chat, and find meaningful relationships with a sophisticated, minimalist aesthetic.",
+  "description": "An exclusive social network for verified members, featuring a premium feed, private encrypted messaging, and identity verification.",
   "requestFramePermissions": [
-    "camera",
-    "geolocation",
-    "microphone"
+    "camera"
   ]
 }

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { auth, db } from './firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
@@ -16,39 +16,56 @@ const App: React.FC = () => {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('age-gate');
   const [viewingProfileId, setViewingProfileId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [sessionBypassed, setSessionBypassed] = useState(false);
+
+  // Persistence for the "Bypass" state during the browser session
+  useEffect(() => {
+    const savedBypass = sessionStorage.getItem('club_18_bypass') === 'true';
+    if (savedBypass) {
+      setSessionBypassed(true);
+      setCurrentScreen('feed');
+    }
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setCurrentUser(user);
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-          const userData = userDoc.data();
-          if (userData.status === 'pending_onboarding') {
-            setCurrentScreen('age-gate');
-          } else if (currentScreen === 'age-gate') {
-            setCurrentScreen('feed');
+        try {
+          const userDoc = await getDoc(doc(db, "users", user.uid));
+          if (userDoc.exists() && userDoc.data().status === 'verified_member') {
+            if (!sessionBypassed) setCurrentScreen('feed');
           }
-        } else {
-          setCurrentScreen('age-gate');
+        } catch (e) {
+          console.warn("Firestore profile check deferred.");
         }
       } else {
         setCurrentUser(null);
-        setCurrentScreen('age-gate');
+        // Only force Age Gate if not already bypassed for this session
+        if (!sessionBypassed && sessionStorage.getItem('club_18_bypass') !== 'true') {
+          setCurrentScreen('age-gate');
+        }
       }
       setLoading(false);
     });
-    return () => unsubscribe();
-  }, [currentScreen]);
 
-  const handleViewProfile = (uid: string) => {
+    return () => unsubscribe();
+  }, [sessionBypassed]);
+
+  const handleVerify = () => {
+    sessionStorage.setItem('club_18_bypass', 'true');
+    setSessionBypassed(true);
+    setCurrentScreen('feed');
+  };
+
+  const handleMemberTap = (uid: string) => {
     setViewingProfileId(uid);
     setCurrentScreen('profile');
   };
 
   const handleNavigate = (screen: AppScreen) => {
     if (screen === 'profile') {
-      setViewingProfileId(auth.currentUser?.uid || null);
+      setViewingProfileId(auth.currentUser?.uid || 'guest-user');
     } else {
       setViewingProfileId(null);
     }
@@ -57,8 +74,12 @@ const App: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="h-screen bg-black flex items-center justify-center">
-        <div className="w-10 h-10 border-2 border-[#8B0000] border-t-transparent rounded-full animate-spin shadow-[0_0_15px_rgba(139,0,0,0.5)]"></div>
+      <div className="h-screen bg-black flex flex-col items-center justify-center">
+        <div className="w-16 h-16 relative">
+          <div className="absolute inset-0 border-2 border-[#8B0000]/10 rounded-full"></div>
+          <div className="absolute inset-0 border-2 border-[#FF0000] border-t-transparent rounded-full animate-spin shadow-[0_0_25px_rgba(139,0,0,0.6)]"></div>
+        </div>
+        <p className="mt-8 text-[10px] font-black uppercase tracking-[0.6em] text-zinc-600 animate-pulse">Authenticating Club Access...</p>
       </div>
     );
   }
@@ -66,27 +87,30 @@ const App: React.FC = () => {
   const renderScreen = () => {
     switch (currentScreen) {
       case 'age-gate':
-        return <AgeGate onVerify={() => setCurrentScreen('feed')} />;
+        return <AgeGate onVerify={handleVerify} />;
       case 'feed':
-        return <FeedScreen onMemberTap={handleViewProfile} />;
+        return <FeedScreen onMemberTap={handleMemberTap} />;
       case 'explore':
-        return <ExploreScreen onSelectPost={handleViewProfile} />;
+        return <ExploreScreen onSelectPost={handleMemberTap} />;
       case 'create':
         return <CreatePostScreen onSuccess={() => setCurrentScreen('feed')} />;
       case 'profile':
-        return <ProfileScreen userId={viewingProfileId || auth.currentUser?.uid || ''} onBack={() => setCurrentScreen('feed')} />;
+        return <ProfileScreen 
+          userId={viewingProfileId || auth.currentUser?.uid || 'guest-user'} 
+          onBack={() => setCurrentScreen('feed')} 
+        />;
       default:
-        return <FeedScreen onMemberTap={handleViewProfile} />;
+        return <FeedScreen onMemberTap={handleMemberTap} />;
     }
   };
 
   return (
-    <div className="flex flex-col h-screen bg-black overflow-hidden relative max-w-md mx-auto shadow-2xl border-x border-zinc-900">
-      <main className="flex-1 overflow-y-auto no-scrollbar pb-16">
+    <div className="flex flex-col h-screen bg-transparent overflow-hidden relative max-w-md mx-auto shadow-[0_0_100px_rgba(0,0,0,1)] border-x border-white/5">
+      <main className="flex-1 overflow-y-auto no-scrollbar pb-16 relative z-10">
         {renderScreen()}
       </main>
       
-      {currentUser && currentScreen !== 'age-gate' && (
+      {currentScreen !== 'age-gate' && (
         <NavigationBar 
           activeScreen={currentScreen} 
           onNavigate={handleNavigate} 
